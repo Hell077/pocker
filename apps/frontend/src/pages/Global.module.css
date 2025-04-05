@@ -1,0 +1,23 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #1f1f2b;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#root {
+    height: 100%;
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.main {
+    flex: 1;
+    padding: 32px;
+}
