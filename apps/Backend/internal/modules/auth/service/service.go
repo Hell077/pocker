@@ -9,6 +9,11 @@ type AuthService struct {
 	Temporal client.Client
 }
 
+type AuthTokens struct {
+	Access  string
+	Refresh string
+}
+
 func NewAuthService(c client.Client) *AuthService {
 	return &AuthService{Temporal: c}
 }
@@ -24,9 +29,10 @@ func (s *AuthService) StartAuthWorkflow(ctx context.Context, login string) (stri
 		return "", err
 	}
 
-	var token string
-	if err := we.Get(ctx, &token); err != nil {
+	var tokens AuthTokens
+	if err := we.Get(ctx, &tokens); err != nil {
 		return "", err
 	}
-	return token, nil
+	return tokens.Access, nil
+
 }
