@@ -4,6 +4,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"pocker/internal/server"
+	"pocker/packages/database"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 		logger.Fatal("error creating client", zap.Error(err))
 	}
 	defer c.Close()
-
+	database.Migrate()
 	server.InitDependencies(nil, c)
 	logger.Info("🚀 Starting HTTP server...")
 
