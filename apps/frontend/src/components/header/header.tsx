@@ -1,7 +1,7 @@
 // components/Header.tsx
 import React, { useState } from 'react';
-import styles from './PockerHeader_button.module.css';
-import '../../pages/Global.module.css';
+import styles from './PockerHeader.module.css';
+import '../../root/root.css';
 import { User, Settings, LogOut, ChevronDown, Gamepad2 } from 'lucide-react';
 
 type Props = {
