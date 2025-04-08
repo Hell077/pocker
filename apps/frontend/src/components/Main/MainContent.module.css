@@ -1,0 +1,163 @@
+.home-page {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: url('/your-bg.webp') center/cover no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.backgroundBlur {
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 0;
+}
+
+.cardsContainer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    perspective: 1200px;
+    z-index: 1;
+}
+
+.card3D {
+    position: absolute;
+    top: -100px;
+    width: 65px;
+    height: 90px;
+    animation: fallSmooth 10s ease-in-out forwards;
+    opacity: 0;
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+}
+
+@keyframes fallSmooth {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh);
+        opacity: 0;
+    }
+}
+
+.cardInner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    animation: autoFlip 10s ease-in-out infinite;
+}
+
+@keyframes autoFlip {
+    0%   { transform: rotateY(0deg); }
+    30%  { transform: rotateY(60deg); }
+    50%  { transform: rotateY(180deg); }
+    80%  { transform: rotateY(120deg); }
+    100% { transform: rotateY(0deg); }
+}
+
+.cardFront,
+.cardBack {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    backface-visibility: hidden;
+}
+
+.cardFront {
+    z-index: 2;
+    transform: rotateY(0deg);
+}
+
+.cardFace {
+    background: white;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.cardFace img {
+    width: 90%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.4));
+}
+
+.cardBack {
+    transform: rotateY(180deg);
+    background-color: white;
+}
+
+.cardBack img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.4));
+}
+
+.overlay {
+    position: relative;
+    z-index: 2;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 1.5s ease-out;
+}
+
+.title {
+    font-size: 3rem;
+    color: #fceeb5;
+    margin-bottom: 30px;
+    text-shadow: 0 0 6px rgba(252, 238, 181, 0.5);
+}
+
+.play-button {
+    font-size: 1.5rem;
+    background-color: #fceeb5;
+    color: #1d1d1d;
+    padding: 16px 40px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 12px rgba(252, 238, 181, 0.3);
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.play-button:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 18px rgba(252, 238, 181, 0.6);
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(252, 238, 181, 0.3); }
+    50%      { box-shadow: 0 0 24px rgba(252, 238, 181, 0.6); }
+}
