@@ -5,19 +5,18 @@ html, body {
     background: #1f1f2b;
     color: #fff;
     font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+    width: 100%;
+
+}
+
+body{
+    height: 100vh;
 }
 
 #root {
-    height: 100%;
-}
-
-.app {
+    height: 100vh;
     display: flex;
-    flex-direction: column;
-    min-height: 100%;
+    width: 100vw;
 }
 
-.main {
-    flex: 1;
-    padding: 32px;
-}
