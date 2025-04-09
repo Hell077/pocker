@@ -1,23 +1,12 @@
-import React from "react";
-import Header from "../../components/header/header.tsx";
-import Footer from "../../components/footer/footer.tsx";
-import MainContent from "../../components/Main/MainContent.tsx";
-import s from "./MainPage.module.css"
-
+import React from 'react';
+import Layout from '../../components/Layout/Layout';
+import MainContent from '../../components/Main/MainContent';
 
 const MainPage: React.FC = () => {
     return (
-        <div className={s.app}>
-            <Header
-                username="AssMaster"
-                avatarUrl="/avatars/player1.png"
-                balance={667}
-            />
-            <main className={s.main}>
-                <MainContent />
-            </main>
-            <Footer />
-        </div>
+        <Layout>
+            <MainContent />
+        </Layout>
     );
 };
 

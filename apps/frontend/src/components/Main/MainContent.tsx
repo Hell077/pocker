@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import styles from './MainContent.module.css';
+import { useNavigate } from 'react-router-dom';
+import styles from './MainContent.module.css';  // Здесь только модульные стили для этого компонента
 
 const cardNames = [
     'AH', '2H', '3H', '4H', '5H', '6H', '7H', '8H', '9H', '10H', 'JH', 'QH', 'KH',
@@ -13,9 +14,8 @@ const getRandomCard = () => {
 };
 
 const MainContent: React.FC = () => {
-    const [cards, setCards] = useState<
-        { id: number; front: string; left: string; rotate: string; duration: string }[]
-    >([]);
+    const navigate = useNavigate();
+    const [cards, setCards] = useState<{ id: number; front: string; left: string; rotate: string; duration: string }[]>([]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -27,10 +27,10 @@ const MainContent: React.FC = () => {
                     front: getRandomCard(),
                     left: `${Math.random() * 90}%`,
                     rotate: `
-            rotateX(${Math.random() * 20 - 10}deg)
-            rotateY(${Math.random() * 20 - 10}deg)
-            rotateZ(${Math.random() * 30 - 15}deg)
-          `,
+                        rotateX(${Math.random() * 20 - 10}deg)
+                        rotateY(${Math.random() * 20 - 10}deg)
+                        rotateZ(${Math.random() * 30 - 15}deg)
+                    `,
                     duration: `${8 + Math.random() * 4}s`
                 };
 
@@ -41,20 +41,20 @@ const MainContent: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
+    const handlePlayClick = () => {
+        navigate('/lobby');
+    };
+
     return (
         <div className={styles["home-page"]}>
             <div className={styles.backgroundBlur} />
             <div className={styles.cardsContainer}>
                 {cards.map(card => (
-                    <div
-                        key={card.id}
-                        className={styles.card3D}
-                        style={{
-                            left: card.left,
-                            animationDuration: card.duration,
-                            transform: card.rotate
-                        }}
-                    >
+                    <div key={card.id} className={styles.card3D} style={{
+                        left: card.left,
+                        animationDuration: card.duration,
+                        transform: card.rotate
+                    }}>
                         <div className={styles.cardInner}>
                             <div className={styles.cardFront}>
                                 <div className={styles.cardFace}>
@@ -71,7 +71,7 @@ const MainContent: React.FC = () => {
 
             <div className={styles.overlay}>
                 <h1 className={styles.title}>Welcome to Poker</h1>
-                <button className={styles["play-button"]}>PLAY</button>
+                <button className={styles["play-button"]} onClick={handlePlayClick}>PLAY</button>
             </div>
         </div>
     );

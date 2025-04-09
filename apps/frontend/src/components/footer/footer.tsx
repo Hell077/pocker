@@ -1,7 +1,5 @@
-// components/Footer.tsx
 import React from 'react';
 import styles from './PockerFooter.module.css';
-import '../../root/root.css';
 import { Instagram, Twitter, Youtube } from 'lucide-react';
 
 const Footer: React.FC = () => {

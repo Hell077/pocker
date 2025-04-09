@@ -1,0 +1,31 @@
+/* Сброс стилей и установка box-sizing */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;  /* Убираем лишние отступы */
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;  /* Убираем горизонтальный скролл */
+    background-color: #121212;  /* Основной фон */
+}
+
+.home-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.backgroundBlur {
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 0;
+}

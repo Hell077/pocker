@@ -1,13 +1,14 @@
-.main {
-    flex: 1;
+.home-page {
+    width: 100%;
+    min-height: 100vh;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 0;
-    overflow: hidden;
-    height: 100vh;
+    padding: 40px 20px;
+    box-sizing: border-box;
+    position: relative;
 }
+
 
 .app {
     display: flex;
