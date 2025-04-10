@@ -1,0 +1,67 @@
+.table {
+    position: relative;
+    width: 900px;
+    height: 500px;
+    background-color: #14532d;
+    border-radius: 999px;
+    border: 12px solid #eab308;
+    box-shadow: 0 0 80px rgba(255, 215, 0, 0.3);
+}
+
+.players {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 24px;
+}
+
+.dealer {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.cards {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 12px;
+}
+
+.card {
+    width: 56px;
+    height: 80px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 2px solid #000;
+}
+
+.actions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+}
+
+.actionBtn {
+    padding: 8px 16px;
+    font-weight: bold;
+    background-color: #facc15;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.actionBtn:hover {
+    background-color: #fde047;
+}
