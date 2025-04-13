@@ -41,7 +41,12 @@ func main() {
 	//server
 	logger.Info("🚀 Starting HTTP server on :3000")
 	srv := server.NewServer(database.DB, temporalClient, logger)
-	if err := srv.Run(os.Getenv("BACK_PORT")); err != nil {
+	port := os.Getenv("BACK_PORT")
+	if port == "" {
+		port = "3000"
+	}
+	if err := srv.Run(":" + port); err != nil {
 		logger.Fatal("❌ Failed to start server", zap.Error(err))
 	}
+
 }
