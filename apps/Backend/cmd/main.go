@@ -2,6 +2,7 @@ package main
 
 import (
 	"go.uber.org/zap"
+	"os"
 	_ "poker/docs"
 	"poker/internal/server"
 	"poker/internal/temporal"
@@ -40,7 +41,7 @@ func main() {
 	//server
 	logger.Info("🚀 Starting HTTP server on :3000")
 	srv := server.NewServer(database.DB, temporalClient, logger)
-	if err := srv.Run(":3000"); err != nil {
+	if err := srv.Run(os.Getenv("BACK_PORT")); err != nil {
 		logger.Fatal("❌ Failed to start server", zap.Error(err))
 	}
 }
