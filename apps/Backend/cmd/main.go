@@ -1,32 +1,46 @@
 package main
 
 import (
-	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
-	"pocker/internal/server"
-	"pocker/packages/database"
+	_ "poker/docs"
+	"poker/internal/server"
+	"poker/internal/temporal"
+	"poker/packages/database"
 )
 
+// @title Poker API
+// @version 1.0
+// @description API documentation for Poker service.
+// @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
+	//logger
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic("unable to initialize zap logger: " + err.Error())
 	}
 	defer logger.Sync()
-	c, err := client.Dial(client.Options{})
-	if err != nil {
-		logger.Fatal("error creating client", zap.Error(err))
-	}
-	defer c.Close()
-	database.Migrate()
-	server.InitDependencies(nil, c)
-	logger.Info("🚀 Starting HTTP server...")
 
-	s := server.NewServer()
-	s.RegisterModules()
-	if err := s.Run(":3000"); err != nil {
-		logger.Fatal("Failed to start server", zap.Error(err))
-	} else {
-		logger.Info("Server stopped gracefully")
+	//migrations
+	database.Migrate()
+	logger.Info("✅ Database migrated successfully")
+
+	//Temporal Client
+	temporalClient := temporal.NewClient(logger)
+	if temporalClient == nil {
+		logger.Fatal("❌ Failed to create Temporal client")
+	}
+
+	//temporal workers
+	go temporal.StartWorkers(temporalClient)
+	logger.Info("🌀 Temporal workers started")
+
+	//server
+	logger.Info("🚀 Starting HTTP server on :3000")
+	srv := server.NewServer(database.DB, temporalClient, logger)
+	if err := srv.Run(":3000"); err != nil {
+		logger.Fatal("❌ Failed to start server", zap.Error(err))
 	}
 }

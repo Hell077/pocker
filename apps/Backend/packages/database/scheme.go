@@ -1,9 +1,12 @@
 package database
 
+import "gorm.io/gorm"
+
 type Account struct {
+	gorm.Model
 	ID         string `gorm:"primaryKey"`
 	Password   string
-	Username   string
+	Email      string
 	AvatarLink string
 }
 
