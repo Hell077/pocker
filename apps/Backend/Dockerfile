@@ -11,13 +11,25 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/main.go
 
-# ---------- STAGE 2: atlas-only ----------
-FROM alpine:latest AS atlas
-RUN apk add --no-cache curl
+FROM alpine:latest
 
-RUN curl -sSf https://atlasgo.sh | sh -s -- -y --to /usr/local/bin
+WORKDIR /root/
 
-RUN atlas version
+# Сервер
+COPY --from=builder /app/server .
+
+# Atlas CLI
+COPY --from=atlas /usr/local/bin/atlas /usr/local/bin/atlas
+
+COPY --from=builder /app/apps/Backend/packages/database ./database/
+COPY --from=builder /app/apps/Backend/packages/atlas.hcl ./
+
+
+ENV PORT=3000
+EXPOSE 3000
+
+CMD ["./server"]
+
 
 # ---------- STAGE 3: final ----------
 FROM alpine:latest
