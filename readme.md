@@ -16,3 +16,5 @@
 | Temporal DB      | gondola.proxy.rlwy.net:29354                                           | postgres /  oSskLwYjFXpvTnjXaXZtiCbgWhCRFclN                                         | railway       | 
 | Swagger          | https://backend-production-7134.up.railway.app/swagger/index.html      |                                                                                      |               |
 | BackendApi       | https://backend-production-7134.up.railway.app                         |                                                                                      |               |
+| Frontend         | https://frontend-production-1cee.up.railway.app/                       |                                                                                      |               |
+
