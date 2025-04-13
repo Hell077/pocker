@@ -1,0 +1,33 @@
+name: Auto Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: github.actor == 'Hell077'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Login to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway login --token $RAILWAY_TOKEN
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up
