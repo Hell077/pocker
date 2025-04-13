@@ -16,7 +16,9 @@ import (
 var DB *gorm.DB
 
 func Migrate() {
-	_ = godotenv.Load("packages/database/.env")
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("No .env loaded (running in production?)")
+	}
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
