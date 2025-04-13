@@ -14,8 +14,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/main.go
 # ---------- STAGE 2: atlas-only ----------
 FROM alpine:latest AS atlas
 RUN apk add --no-cache curl
-RUN curl -sSf https://atlasgo.sh | sh -s -- -y && \
-    cp /root/bin/atlas /usr/local/bin/atlas || cp /root/.local/bin/atlas /usr/local/bin/atlas
+
+RUN curl -sSf https://atlasgo.sh | sh -s -- -y --to /usr/local/bin
+
+RUN atlas version
 
 # ---------- STAGE 3: final ----------
 FROM alpine:latest
