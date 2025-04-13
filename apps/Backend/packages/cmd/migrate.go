@@ -12,7 +12,6 @@ import (
 func main() {
 	sb := &strings.Builder{}
 	loadModels(sb)
-
 	io.WriteString(os.Stdout, sb.String())
 }
 

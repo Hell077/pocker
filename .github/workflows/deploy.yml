@@ -25,10 +25,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           docker run --rm \
-            -v $(pwd):/app \
+            -e DATABASE_URL=$DATABASE_URL \
+            -v ${{ github.workspace }}/pocker/apps/Backend/packages:/app \
             -w /app \
             arigaio/atlas \
             migrate apply --env production
+      
 
       - name: Setup Railway CLI
         run: |
