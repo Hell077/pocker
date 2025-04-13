@@ -1,24 +1,40 @@
-name: Auto Deploy to Railway
+name: Auto Deploy on changes in main
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
 
 jobs:
-  deploy:
-    if: github.actor == 'Hell077'
+  auto-commit:
+    if: github.actor != 'Hell077'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0
 
-      - name: Setup Railway CLI
+      - name: Configure Git
         run: |
-          curl -fsSL https://railway.app/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+          git config --local user.email "alexey.ovchinnikov.dev@gmail.com"
+          git config --local user.name "Ovchinnikov Alexey"
 
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up
+      - name: Make changes
+        run: |
+          echo "Last deployed: $(date)" >> deploy.log
+
+      - name: Commit and push if changes exist
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add -A
+            git commit -m "chore: auto deploy commit"
+            git push
+          fi
