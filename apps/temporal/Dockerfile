@@ -1,8 +1,10 @@
-FROM ubuntu:22.04
+FROM debian:bullseye
 
-# ========== 1. Установка зависимостей ==========
-RUN apt update && \
-    apt install -y wget unzip postgresql postgresql-contrib curl
+# Обновляем и устанавливаем зависимости быстро
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    wget unzip curl postgresql postgresql-contrib gnupg2 nodejs npm && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ========== 2. Установка Temporal Server ==========
 RUN useradd -ms /bin/bash temporal
