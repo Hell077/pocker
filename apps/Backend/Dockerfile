@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o server .
+RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/main.go
 
 FROM alpine:latest
 
@@ -16,7 +16,6 @@ WORKDIR /root/
 COPY --from=builder /app/server .
 
 ENV PORT=3000
-
 EXPOSE 3000
 
 CMD ["./server"]
