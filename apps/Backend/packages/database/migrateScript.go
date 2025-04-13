@@ -13,6 +13,8 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
+var DB *gorm.DB
+
 func Migrate() {
 	_ = godotenv.Load("packages/database/.env")
 
@@ -28,7 +30,9 @@ func Migrate() {
 		logger.Fatal("failed to connect to database", zap.Error(err))
 	}
 
-	err = conn.AutoMigrate(&Account{}, &AccountBalance{})
+	DB = conn
+
+	err = DB.AutoMigrate(&Account{}, &AccountBalance{})
 	if err != nil {
 		logger.Fatal("migration failed", zap.Error(err))
 	}
