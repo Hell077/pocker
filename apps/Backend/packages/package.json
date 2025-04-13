@@ -1,0 +1,17 @@
+{
+  "name": "db",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "go:lint": "golangci-lint run ./...",
+    "go:mod:tidy": "go mod tidy",
+    "build": "npm run go:build",
+    "test": "npm run go:test",
+    "lint": "npm run go:lint",
+    "db:status": "atlas migrate status --env local",
+    "db:diff": "atlas migrate diff --env gorm",
+    "db:apply": "atlas migrate apply --env local",
+    "db:apply:prod": "atlas migrate apply --env production",
+    "db:revert": "atlas migrate down --env local"
+  }
+}

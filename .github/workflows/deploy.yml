@@ -1,4 +1,4 @@
-name: Auto Deploy and Commit
+name: Auto Deploy and Migrate
 
 on:
   push:
@@ -13,6 +13,22 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GH_PERSONAL_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21' # или твоя текущая
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          echo "$HOME/.atlas/bin" >> $GITHUB_PATH
+
+      - name: Run DB migrations
+        working-directory: pocker/apps/Backend/packages
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: atlas migrate apply --env production
 
       - name: Setup Railway CLI
         run: |

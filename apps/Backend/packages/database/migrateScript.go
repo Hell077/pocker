@@ -15,8 +15,8 @@ import (
 
 var DB *gorm.DB
 
-func Migrate() {
-	if err := godotenv.Load(); err != nil {
+func DbSetup() {
+	if err := godotenv.Load("packages/database/.env"); err != nil {
 		fmt.Println("No .env loaded (running in production?)")
 	}
 
@@ -34,7 +34,6 @@ func Migrate() {
 
 	DB = conn
 
-	err = DB.AutoMigrate(&Account{}, &AccountBalance{})
 	if err != nil {
 		logger.Fatal("migration failed", zap.Error(err))
 	}

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"poker/internal/modules/auth/repo"
@@ -78,7 +79,8 @@ func generateJWT(userID string, duration time.Duration) (string, error) {
 }
 
 func generateUUID() string {
-	return time.Now().Format("20060102150405") // временно, заменишь на uuid
+	uuid, _ := uuid.NewUUID()
+	return uuid.String()
 }
 
 func (s *authService) RefreshToken(refresh string) (string, error) {
