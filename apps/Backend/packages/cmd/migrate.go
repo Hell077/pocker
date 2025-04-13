@@ -20,6 +20,15 @@ func loadModels(sb *strings.Builder) {
 		database.Account{},
 		database.AccountBalance{},
 		database.Room{},
+		database.GamePlayer{},
+		database.GameSession{},
+		database.GameMove{},
+		database.GameLog{},
+		database.Tournament{},
+		database.TournamentPlayer{},
+		database.Replay{},
+		database.Rating{},
+		database.Notification{},
 	}
 	stmts, err := gormschema.New("postgres").Load(models...)
 	if err != nil {
