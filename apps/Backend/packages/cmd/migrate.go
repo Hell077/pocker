@@ -20,6 +20,7 @@ func loadModels(sb *strings.Builder) {
 	models := []interface{}{
 		database.Account{},
 		database.AccountBalance{},
+		database.Room{},
 	}
 	stmts, err := gormschema.New("postgres").Load(models...)
 	if err != nil {
