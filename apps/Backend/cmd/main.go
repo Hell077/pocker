@@ -58,15 +58,18 @@ func main() {
 }
 
 func runMigrations() {
+	log.Println("📦 Applying migrations...")
 
 	cmd := exec.Command("atlas", "migrate", "apply", "--env", "production")
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = "../packages/"
 
-	log.Println("📦 Applying migrations...")
+	cmd.Dir = "."
+
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("❌ Failed to apply migrations: %v", err)
 	}
-	log.Println("✅ Migrations applied")
+
+	log.Println("✅ Migrations applied successfully.")
 }
