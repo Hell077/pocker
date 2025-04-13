@@ -49,10 +49,10 @@ func (s *AppServer) Run(addr string) error {
 func (s *AppServer) RegisterRoutes() {
 	api := s.app.Group("/api")
 
-	s.app.Get("/swagger/*", fiberSwagger.WrapHandler) // http://localhost:3000/swagger/index.html
+	s.app.Get("/swagger/*", fiberSwagger.FiberWrapHandler(func(c *fiberSwagger.Config) {
+		c.URL = "/swagger/doc.json"
+	}))
 
-	// Модули
 	auth.RegisterRoutes(api, s.db, s.logger, s.temporal)
 
-	// другие модули здесь
 }
