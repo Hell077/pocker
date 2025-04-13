@@ -6,6 +6,11 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
+RUN apk add --no-cache curl && \
+    curl -sSf https://atlasgo.sh | sh && \
+    mv ~/.atlas/bin/atlas /usr/local/bin/atlas
+
+
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/main.go

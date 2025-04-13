@@ -6,7 +6,7 @@ type Account struct {
 	gorm.Model
 	ID         string `gorm:"primaryKey"`
 	Password   string
-	Email      string
+	Email      string `gorm:"unique"`
 	AvatarLink string
 }
 

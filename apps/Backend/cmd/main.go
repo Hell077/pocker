@@ -24,8 +24,8 @@ func main() {
 	}
 	defer logger.Sync()
 
-	//migrations
-	database.Migrate()
+	//SetupDB
+	database.DbSetup()
 	logger.Info("✅ Database migrated successfully")
 
 	//Temporal Client
