@@ -1,40 +1,43 @@
-name: Auto Deploy on changes in main
+name: Auto Deploy and Commit
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  auto-commit:
-    if: github.actor != 'Hell077'
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: main
-          fetch-depth: 0
+          token: ${{ secrets.GH_PERSONAL_TOKEN }}
+
+      - name: Setup Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up
 
       - name: Configure Git
         run: |
-          git config --local user.email "alexey.ovchinnikov.dev@gmail.com"
-          git config --local user.name "Ovchinnikov Alexey"
+          git config --global user.email "alexey.ovchinnikov.dev@gmail.com"
+          git config --global user.name "Ovchinnikov Alexey"
 
-      - name: Make changes
-        run: |
-          echo "Last deployed: $(date)" >> deploy.log
+      - name: Update deploy log
+        run: echo "Last deployed: $(date)" >> deploy.log
 
-      - name: Commit and push if changes exist
+      - name: Commit and push deploy log
+        env:
+          GH_TOKEN: ${{ secrets.GH_PERSONAL_TOKEN }}
         run: |
+          git add deploy.log
           if [[ -n "$(git status --porcelain)" ]]; then
-            git add -A
-            git commit -m "chore: auto deploy commit"
-            git push
+            git commit -m "chore: auto update deploy log"
+            git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git HEAD:main
           fi
