@@ -2,7 +2,9 @@ package main
 
 import (
 	"go.uber.org/zap"
+	"log"
 	"os"
+	"os/exec"
 	_ "poker/docs"
 	"poker/internal/server"
 	"poker/internal/temporal"
@@ -23,6 +25,10 @@ func main() {
 		panic("unable to initialize zap logger: " + err.Error())
 	}
 	defer logger.Sync()
+
+	if os.Getenv("ENV") == "production" {
+		runMigrations()
+	}
 
 	//SetupDB
 	database.DbSetup()
@@ -49,4 +55,18 @@ func main() {
 		logger.Fatal("❌ Failed to start server", zap.Error(err))
 	}
 
+}
+
+func runMigrations() {
+
+	cmd := exec.Command("atlas", "migrate", "apply", "--env", "production")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = "../packages/"
+
+	log.Println("📦 Applying migrations...")
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("❌ Failed to apply migrations: %v", err)
+	}
+	log.Println("✅ Migrations applied")
 }
