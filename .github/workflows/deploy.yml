@@ -17,18 +17,18 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21' # или твоя текущая
+          go-version: '1.21'
 
-      - name: Install Atlas CLI
-        run: |
-          curl -sSf https://atlasgo.sh | sh
-          echo "$HOME/.atlas/bin" >> $GITHUB_PATH
-
-      - name: Run DB migrations
+      - name: Run DB migrations via Atlas Docker
         working-directory: pocker/apps/Backend/packages
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: atlas migrate apply --env production
+        run: |
+          docker run --rm \
+            -v $(pwd):/app \
+            -w /app \
+            arigaio/atlas \
+            migrate apply --env production
 
       - name: Setup Railway CLI
         run: |
