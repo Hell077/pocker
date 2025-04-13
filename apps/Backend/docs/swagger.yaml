@@ -33,6 +33,24 @@ definitions:
         example: your_refresh_token_here
         type: string
     type: object
+  poker_internal_modules_room_dto.CreateRoomRequest:
+    properties:
+      limits:
+        description: Например, "1/2" или "5/10"
+        type: string
+      max_players:
+        maximum: 10
+        minimum: 2
+        type: integer
+      room_id:
+        type: string
+      type:
+        description: '"cash", "sitngo", "mtt"'
+        type: string
+    required:
+    - max_players
+    - room_id
+    type: object
 info:
   contact: {}
   description: API documentation for Poker service.
@@ -150,6 +168,71 @@ paths:
       summary: Register new user
       tags:
       - Auth
+  /room/create-room:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую покерную комнату с заданными параметрами
+      parameters:
+      - description: Параметры комнаты
+        in: body
+        name: room
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Комната успешно создана
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации или тела запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание комнаты
+      tags:
+      - Room
+  /room/ws/{roomId}:
+    get:
+      description: Устанавливает WebSocket-соединение с покерной комнатой. Требуется
+        `roomId` в URL. После подключения можно обмениваться сообщениями.
+      parameters:
+      - description: ID комнаты
+        in: path
+        name: roomId
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "101":
+          description: WebSocket Upgrade
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "426":
+          description: Upgrade Required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подключение к комнате по WebSocket
+      tags:
+      - Room
 securityDefinitions:
   BearerAuth:
     in: header
