@@ -60,7 +60,7 @@ func main() {
 func runMigrations() {
 	log.Println("📦 Re-hashing and applying migrations...")
 
-	hashCmd := exec.Command("atlas", "migrate", "hash", "--env", "production", "--allow-dirty")
+	hashCmd := exec.Command("atlas", "migrate", "hash", "--env", "production")
 	hashCmd.Stdout = os.Stdout
 	hashCmd.Stderr = os.Stderr
 	hashCmd.Dir = "."
