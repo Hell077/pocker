@@ -60,16 +60,14 @@ func main() {
 func runMigrations() {
 	log.Println("📦 Applying migrations...")
 
-	cmd := exec.Command("atlas", "migrate", "apply", "--env", "production")
-
+	cmd := exec.Command("atlas", "migrate", "apply", "--env", "production", "--allow-dirty")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	cmd.Dir = "."
 
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("❌ Failed to apply migrations: %v", err)
 	}
 
-	log.Println("✅ Migrations applied successfully.")
+	log.Println("✅ Migrations applied")
 }
