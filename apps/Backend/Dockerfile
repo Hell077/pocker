@@ -7,9 +7,8 @@ COPY go.sum ./
 RUN go mod download
 
 RUN apk add --no-cache curl && \
-    curl -sSf https://atlasgo.sh | sh && \
-    mv ~/.atlas/bin/atlas /usr/local/bin/atlas
-
+    curl -sSf https://atlasgo.sh | sh -s -- -y && \
+    cp /root/bin/atlas /usr/local/bin/atlas || cp /root/.local/bin/atlas /usr/local/bin/atlas
 
 COPY . .
 
