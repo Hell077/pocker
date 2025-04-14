@@ -215,3 +215,44 @@ func (h *RoomHandler) PlayerAction(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "action received"})
 }
+
+// AvailableActions godoc
+// @Summary Получение доступных действий игрока
+// @Description Возвращает список допустимых ходов на текущий момент
+// @Tags Room
+// @Accept json
+// @Produce json
+// @Param roomID query string true "ID комнаты"
+// @Param userID query string true "ID игрока"
+// @Success 200 {object} map[string][]string
+// @Router /room/available-actions [get]
+func (h *RoomHandler) AvailableActions(c *fiber.Ctx) error {
+	roomID := c.Query("roomID")
+	userID := c.Query("userID")
+
+	if roomID == "" || userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "missing roomID or userID",
+		})
+	}
+
+	resp, err := h.temporal.QueryWorkflow(context.Background(), "room_"+roomID, "", "available-actions", userID)
+	if err != nil {
+		h.logger.Error("❌ Failed to query available-actions", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to query workflow",
+		})
+	}
+
+	var available []string
+	if err := resp.Get(&available); err != nil {
+		h.logger.Error("❌ Failed to decode query result", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{
+			"error": "invalid query result",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"actions": available,
+	})
+}
