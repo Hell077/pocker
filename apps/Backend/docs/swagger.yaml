@@ -1,0 +1,306 @@
+basePath: /api
+definitions:
+  dto.LoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: strongpassword
+        type: string
+    type: object
+  dto.LoginResponse:
+    properties:
+      access_token:
+        example: access.jwt.token
+        type: string
+      refresh_token:
+        example: refresh.jwt.token
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: strongpassword
+        type: string
+    type: object
+  internal_modules_auth_handler.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: your_refresh_token_here
+        type: string
+    type: object
+  poker_internal_modules_room_dto.CreateRoomRequest:
+    properties:
+      limits:
+        description: Например, "1/2" или "5/10"
+        type: string
+      max_players:
+        maximum: 10
+        minimum: 2
+        type: integer
+      type:
+        description: '"cash", "sitngo", "mtt"'
+        type: string
+    required:
+    - max_players
+    type: object
+  poker_internal_modules_room_dto.PlayerActionRequest:
+    properties:
+      activity:
+        type: string
+      roomID:
+        type: string
+      userID:
+        type: string
+    required:
+    - activity
+    - roomID
+    - userID
+    type: object
+  poker_internal_modules_room_dto.StartGameRequest:
+    properties:
+      roomID:
+        type: string
+    required:
+    - roomID
+    type: object
+info:
+  contact: {}
+  description: API documentation for Poker service.
+  title: Poker API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password, return JWT tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      summary: Login
+      tags:
+      - Auth
+  /auth/me:
+    get:
+      description: Return info about authorized user
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Generate new access token from refresh token
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_handler.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: Registration data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: registered
+          schema:
+            type: string
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "500":
+          description: registration failed
+          schema:
+            type: string
+      summary: Register new user
+      tags:
+      - Auth
+  /room/action:
+    post:
+      consumes:
+      - application/json
+      description: Отправка действия игрока в Temporal воркфлоу
+      parameters:
+      - description: Действие игрока
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.PlayerActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Игровое действие
+      tags:
+      - Room
+  /room/create-room:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую покерную комнату с заданными параметрами
+      parameters:
+      - description: Параметры комнаты
+        in: body
+        name: room
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Комната успешно создана
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации или тела запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание комнаты
+      tags:
+      - Room
+  /room/start-game:
+    post:
+      consumes:
+      - application/json
+      description: Меняет статус комнаты на playing
+      parameters:
+      - description: ID комнаты
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.StartGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запуск игры
+      tags:
+      - Room
+  /room/ws/{roomId}:
+    get:
+      description: Устанавливает WebSocket-соединение с покерной комнатой. Требуется
+        `roomId` в URL. После подключения можно обмениваться сообщениями.
+      parameters:
+      - description: ID комнаты
+        in: path
+        name: roomId
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "101":
+          description: WebSocket Upgrade
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "426":
+          description: Upgrade Required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подключение к комнате по WebSocket
+      tags:
+      - Room
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
