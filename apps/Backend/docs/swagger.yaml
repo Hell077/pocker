@@ -209,6 +209,36 @@ paths:
       summary: Игровое действие
       tags:
       - Room
+  /room/available-actions:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список допустимых ходов на текущий момент
+      parameters:
+      - description: ID комнаты
+        in: query
+        name: roomID
+        required: true
+        type: string
+      - description: ID игрока
+        in: query
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+      summary: Получение доступных действий игрока
+      tags:
+      - Room
   /room/create-room:
     post:
       consumes:
@@ -266,14 +296,19 @@ paths:
       summary: Запуск игры
       tags:
       - Room
-  /room/ws/{roomId}:
+  /room/ws:
     get:
       description: Устанавливает WebSocket-соединение с покерной комнатой. Требуется
-        `roomId` в URL. После подключения можно обмениваться сообщениями.
+        `roomID` и `userID` как query-параметры.
       parameters:
       - description: ID комнаты
-        in: path
-        name: roomId
+        in: query
+        name: roomID
+        required: true
+        type: string
+      - description: ID пользователя
+        in: query
+        name: userID
         required: true
         type: string
       produces:

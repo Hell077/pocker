@@ -71,7 +71,12 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			var s StartGameSignal
 			c.Receive(ctx, &s)
 
-			// 🟢 Установка начальных значений
+			if len(state.Players) == 0 {
+				logger.Warn("❌ Cannot start game: no players in room")
+				sendToAllPlayers(ctx, state.Players, "⚠️ Game cannot start, no players in room")
+				return
+			}
+
 			state.GameStarted = true
 			state.PlayerOrder = make([]string, 0)
 			state.PlayerChips = make(map[string]int64)
@@ -80,25 +85,38 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 
 			for id := range state.Players {
 				state.PlayerOrder = append(state.PlayerOrder, id)
+				state.PlayerChips[id] = 1000
 				state.PlayerFolded[id] = false
 				state.PlayerAllIn[id] = false
-				state.PlayerChips[id] = 1000 // 💰 например, стартовый стек
 			}
+
+			if len(state.PlayerOrder) == 0 {
+				logger.Error("❌ PlayerOrder is still empty after init")
+				return
+			}
+
 			state.CurrentPlayer = state.PlayerOrder[0]
 
 			logger.Info("🎮 Game started", "firstPlayer", state.CurrentPlayer)
-			sendToAllPlayers(ctx, state.Players, "Game started!")
-			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🎲 First turn: %s", state.CurrentPlayer))
+			sendToAllPlayers(ctx, state.Players, "🎮 Game started!")
+			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
 		})
 
 		selector.AddReceive(joinChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s JoinRoomSignal
 			c.Receive(ctx, &s)
+
+			if _, alreadyIn := state.Players[s.UserID]; alreadyIn {
+				logger.Warn("🚫 Duplicate user join attempt", "userID", s.UserID)
+				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🚫 Пользователь %s уже в комнате", s.UserID))
+				return
+			}
+
 			state.Players[s.UserID] = true
-			hasHadPlayers = true // ✅ хотя бы один игрок заходил
+			hasHadPlayers = true
 			logger.Info("👤 Player joined", "userID", s.UserID)
 
-			sendToAllPlayers(ctx, state.Players, "Player "+s.UserID+" joined the room")
+			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("✅ Player %s joined the room", s.UserID))
 		})
 
 		selector.AddReceive(leaveChan, func(c workflow.ReceiveChannel, _ bool) {
