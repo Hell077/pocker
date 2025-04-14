@@ -11,6 +11,7 @@ type RoomRepo struct {
 
 type RoomRepoI interface {
 	CreateRoom(room *database.Room) error
+	UpdateRoomStatus(roomID, status string) error
 }
 
 func NewRoomRepo(db *gorm.DB) *RoomRepo {
@@ -21,4 +22,8 @@ func NewRoomRepo(db *gorm.DB) *RoomRepo {
 
 func (r *RoomRepo) CreateRoom(room *database.Room) error {
 	return r.db.Create(room).Error
+}
+
+func (r *RoomRepo) UpdateRoomStatus(roomID, status string) error {
+	return r.db.Model(&database.Room{}).Where("room_id = ?", roomID).Update("status", status).Error
 }
