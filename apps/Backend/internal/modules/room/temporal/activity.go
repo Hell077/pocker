@@ -8,7 +8,6 @@ import (
 )
 
 func SendMessageActivity(ctx context.Context, userID, message string) error {
-
 	log.Printf("📤 Sending to %s: %s", userID, message)
 	return nil
 }

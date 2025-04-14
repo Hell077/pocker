@@ -14,14 +14,16 @@ import (
 
 func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, temporal client.Client) {
 	RoomRepo := repo.NewRoomRepo(db)
-	RoomService := service.NewRoomService(RoomRepo, logger)
-	RoomHandler := handler.NewRoomHandler(RoomService, logger)
+	RoomService := service.NewRoomService(RoomRepo, logger, temporal)
+	RoomHandler := handler.NewRoomHandler(RoomService, logger, temporal)
 
 	RoomGroup := router.Group("/room")
 	RoomGroup.Post("/create-room", RoomHandler.CreateRoom)
+	RoomGroup.Post("/start-game", RoomHandler.StartGame)
+	RoomGroup.Post("/action", RoomHandler.PlayerAction)
 
 	RoomGroup.Use("/ws", middleware.WebSocketUpgradeRequired())
-	RoomGroup.Get("/ws/:roomID", websocket.New(func(c *websocket.Conn) {
+	RoomGroup.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		if err := RoomHandler.JoinRoom(c); err != nil {
 			_ = c.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()))
 			_ = c.Close()

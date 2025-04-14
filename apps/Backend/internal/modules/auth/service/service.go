@@ -102,5 +102,5 @@ func (s *authService) RefreshToken(refresh string) (string, error) {
 	}
 
 	// создаём новый access token
-	return generateJWT(userID, 15*time.Minute)
+	return generateJWT(userID, 30*time.Minute)
 }
