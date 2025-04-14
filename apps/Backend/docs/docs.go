@@ -224,6 +224,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/room/available-actions": {
+            "get": {
+                "description": "Возвращает список допустимых ходов на текущий момент",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Получение доступных действий игрока",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID комнаты",
+                        "name": "roomID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID игрока",
+                        "name": "userID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/room/create-room": {
             "post": {
                 "description": "Создаёт новую покерную комнату с заданными параметрами",
@@ -310,9 +355,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/room/ws/{roomId}": {
+        "/room/ws": {
             "get": {
-                "description": "Устанавливает WebSocket-соединение с покерной комнатой. Требуется ` + "`" + `roomId` + "`" + ` в URL. После подключения можно обмениваться сообщениями.",
+                "description": "Устанавливает WebSocket-соединение с покерной комнатой. Требуется ` + "`" + `roomID` + "`" + ` и ` + "`" + `userID` + "`" + ` как query-параметры.",
                 "produces": [
                     "text/plain"
                 ],
@@ -324,8 +369,15 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "ID комнаты",
-                        "name": "roomId",
-                        "in": "path",
+                        "name": "roomID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID пользователя",
+                        "name": "userID",
+                        "in": "query",
                         "required": true
                     }
                 ],

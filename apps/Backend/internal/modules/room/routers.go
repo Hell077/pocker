@@ -25,7 +25,16 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 
 	RoomGroup.Use("/ws", middleware.WebSocketUpgradeRequired())
 	RoomGroup.Get("/ws", websocket.New(func(c *websocket.Conn) {
-		if err := RoomHandler.JoinRoom(c); err != nil {
+		query := c.Query("roomID")
+		user := c.Query("userID")
+
+		if query == "" || user == "" {
+			_ = c.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
+			_ = c.Close()
+			return
+		}
+
+		if err := RoomHandler.JoinRoom(c, query, user); err != nil {
 			_ = c.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()))
 			_ = c.Close()
 		}
