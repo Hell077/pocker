@@ -2,13 +2,13 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"poker/internal/modules/room/dto"
+	"poker/internal/modules/room/manager"
 	"poker/internal/modules/room/service"
 	room_temporal "poker/internal/modules/room/temporal"
 )
@@ -72,45 +72,33 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 
 // JoinRoom godoc
 // @Summary      Подключение к комнате по WebSocket
-// @Description  Устанавливает WebSocket-соединение с покерной комнатой. Требуется `roomId` в URL. После подключения можно обмениваться сообщениями.
+// @Description  Устанавливает WebSocket-соединение с покерной комнатой. Требуется `roomID` и `userID` как query-параметры.
 // @Tags         Room
 // @Produce      plain
-// @Param        roomId  path  string  true  "ID комнаты"
+// @Param        roomID  query  string  true  "ID комнаты"
+// @Param        userID  query  string  true  "ID пользователя"
 // @Success      101  {string}  string  "WebSocket Upgrade"
 // @Failure      400  {object}  map[string]string  "Bad Request"
 // @Failure      426  {object}  map[string]string  "Upgrade Required"
-// @Router       /room/ws/{roomId} [get]
-func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
+// @Router       /room/ws [get]
+func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
 	defer func() {
 		h.logger.Info("🔌 Disconnected", zap.String("remote", c.RemoteAddr().String()))
+		manager.Manager.Remove(roomID, userID)
 		_ = c.Close()
 	}()
 
-	// 📨 Читаем первое сообщение как JSON с параметрами
-	_, msg, err := c.ReadMessage()
-	if err != nil {
-		h.logger.Error("❌ Failed to read init message", zap.Error(err))
-		return err
-	}
-
-	type JoinPayload struct {
-		RoomID string `json:"roomID"`
-		UserID string `json:"userID"`
-	}
-
-	var payload JoinPayload
-	if err := json.Unmarshal(msg, &payload); err != nil {
-		h.logger.Error("❌ Invalid JSON", zap.Error(err))
-		_ = c.WriteMessage(websocket.TextMessage, []byte("Invalid JSON"))
-		return err
-	}
-
-	roomID := payload.RoomID
-	userID := payload.UserID
 	if roomID == "" || userID == "" {
 		_ = c.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
-		h.logger.Info("❗ missing required fields", zap.String("roomID", roomID), zap.String("userID", userID))
+		h.logger.Warn("❗ missing required fields", zap.String("roomID", roomID), zap.String("userID", userID))
 		return errors.New("missing required fields")
+	}
+
+	if !manager.Manager.Add(roomID, userID, c) {
+		msg := "❌ This user is already connected to the room"
+		h.logger.Warn(msg, zap.String("userID", userID))
+		_ = c.WriteMessage(websocket.TextMessage, []byte(msg))
+		return errors.New("user already connected")
 	}
 
 	h.logger.Info("✅ JoinRoom request",
@@ -118,8 +106,7 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
 		zap.String("userID", userID),
 	)
 
-	// 📡 Temporal сигнал: join-room
-	err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "join-room", room_temporal.JoinRoomSignal{
+	err := h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "join-room", room_temporal.JoinRoomSignal{
 		UserID: userID,
 	})
 	if err != nil {
@@ -130,7 +117,6 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
 
 	_ = c.WriteMessage(websocket.TextMessage, []byte("Добро пожаловать в комнату: "+roomID))
 
-	// 🎮 Слушаем остальные действия игрока
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
@@ -143,6 +129,7 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
 			zap.ByteString("msg", message),
 		)
 
+		h.logger.Info("📡 Sending join-room signal", zap.String("roomID", roomID), zap.String("userID", userID))
 		err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "player-move", room_temporal.PlayerMoveSignal{
 			UserID: userID,
 			Move:   string(message),
@@ -152,7 +139,6 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
 		}
 	}
 
-	// ❌ Ушёл
 	err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "leave-room", room_temporal.LeaveRoomSignal{
 		UserID: userID,
 	})
