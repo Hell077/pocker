@@ -2,22 +2,28 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"poker/internal/modules/room/dto"
 	"poker/internal/modules/room/service"
+	room_temporal "poker/internal/modules/room/temporal"
 )
 
 type RoomHandler struct {
-	service service.RoomService
-	logger  *zap.Logger
+	service  service.RoomService
+	logger   zap.Logger
+	temporal client.Client
 }
 
-func NewRoomHandler(s *service.RoomService, logger *zap.Logger) *RoomHandler {
+func NewRoomHandler(s *service.RoomService, logger *zap.Logger, temporal client.Client) *RoomHandler {
 	return &RoomHandler{
-		service: *s,
-		logger:  logger,
+		service:  *s,
+		logger:   *logger,
+		temporal: temporal,
 	}
 
 }
@@ -36,6 +42,7 @@ func NewRoomHandler(s *service.RoomService, logger *zap.Logger) *RoomHandler {
 func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 	var req dto.CreateRoomRequest
 	var ctx context.Context
+	ctx = context.Background()
 	if err := c.BodyParser(&req); err != nil {
 		h.logger.Warn("Invalid request body", zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -43,13 +50,13 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	if req.RoomID == "" || req.MaxPlayers < 2 || req.MaxPlayers > 10 {
+	if req.MaxPlayers < 2 || req.MaxPlayers > 10 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room data",
 		})
 	}
 
-	err := h.service.CreateRoom(ctx, dto.CreateRoomRequest{})
+	roomID, err := h.service.CreateRoom(ctx, dto.CreateRoomRequest{})
 	if err != nil {
 		h.logger.Error("Failed to create room", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -59,7 +66,7 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "room created",
-		"room_id": req.RoomID,
+		"room_id": roomID,
 	})
 }
 
@@ -76,45 +83,135 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 func (h *RoomHandler) JoinRoom(c *websocket.Conn) error {
 	defer func() {
 		h.logger.Info("🔌 Disconnected", zap.String("remote", c.RemoteAddr().String()))
-		c.Close()
+		_ = c.Close()
 	}()
 
-	roomID := c.Params("roomId")
-	if roomID == "" {
-		h.logger.Warn("Missing roomId param")
-		return c.WriteMessage(websocket.TextMessage, []byte("Missing roomId"))
-	}
-
-	h.logger.Info("✅ JoinRoom", zap.String("roomId", roomID), zap.String("ip", c.RemoteAddr().String()))
-
-	// 👉 Здесь ты можешь добавить подключение в карту:
-	// RoomManager.AddConnection(roomID, c)
-
-	// Приветственное сообщение
-	if err := c.WriteMessage(websocket.TextMessage, []byte("Добро пожаловать в комнату: "+roomID)); err != nil {
-		h.logger.Error("Write error", zap.Error(err))
+	// 📨 Читаем первое сообщение как JSON с параметрами
+	_, msg, err := c.ReadMessage()
+	if err != nil {
+		h.logger.Error("❌ Failed to read init message", zap.Error(err))
 		return err
 	}
 
-	// Слушаем входящие сообщения от клиента
+	type JoinPayload struct {
+		RoomID string `json:"roomID"`
+		UserID string `json:"userID"`
+	}
+
+	var payload JoinPayload
+	if err := json.Unmarshal(msg, &payload); err != nil {
+		h.logger.Error("❌ Invalid JSON", zap.Error(err))
+		_ = c.WriteMessage(websocket.TextMessage, []byte("Invalid JSON"))
+		return err
+	}
+
+	roomID := payload.RoomID
+	userID := payload.UserID
+	if roomID == "" || userID == "" {
+		_ = c.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
+		h.logger.Info("❗ missing required fields", zap.String("roomID", roomID), zap.String("userID", userID))
+		return errors.New("missing required fields")
+	}
+
+	h.logger.Info("✅ JoinRoom request",
+		zap.String("roomID", roomID),
+		zap.String("userID", userID),
+	)
+
+	// 📡 Temporal сигнал: join-room
+	err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "join-room", room_temporal.JoinRoomSignal{
+		UserID: userID,
+	})
+	if err != nil {
+		h.logger.Error("❌ Failed to send join-room signal", zap.Error(err))
+		_ = c.WriteMessage(websocket.TextMessage, []byte("Failed to join room"))
+		return err
+	}
+
+	_ = c.WriteMessage(websocket.TextMessage, []byte("Добро пожаловать в комнату: "+roomID))
+
+	// 🎮 Слушаем остальные действия игрока
 	for {
-		messageType, message, err := c.ReadMessage()
+		_, message, err := c.ReadMessage()
 		if err != nil {
-			h.logger.Warn("Read error", zap.Error(err))
 			break
 		}
 
-		h.logger.Info("📩 Message received",
-			zap.String("roomId", roomID),
+		h.logger.Info("📩 Player action",
+			zap.String("roomID", roomID),
+			zap.String("userID", userID),
 			zap.ByteString("msg", message),
 		)
 
-		// Пример эхо-ответа
-		if err := c.WriteMessage(messageType, message); err != nil {
-			h.logger.Error("Write error", zap.Error(err))
-			break
+		err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "player-move", room_temporal.PlayerMoveSignal{
+			UserID: userID,
+			Move:   string(message),
+		})
+		if err != nil {
+			h.logger.Error("❌ Failed to send player-move", zap.Error(err))
 		}
 	}
 
+	// ❌ Ушёл
+	err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "leave-room", room_temporal.LeaveRoomSignal{
+		UserID: userID,
+	})
+	if err != nil {
+		h.logger.Error("❌ Failed to send leave-room", zap.Error(err))
+	}
+
 	return nil
+}
+
+// StartGame godoc
+// @Summary Запуск игры
+// @Description Меняет статус комнаты на playing
+// @Tags Room
+// @Accept json
+// @Produce json
+// @Param body body dto.StartGameRequest true "ID комнаты"
+// @Success 200 {object} map[string]string
+// @Router /room/start-game [post]
+func (h *RoomHandler) StartGame(c *fiber.Ctx) error {
+	var req dto.StartGameRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+	}
+	if err := h.service.UpdateRoomStatus(req.RoomID, "playing"); err != nil {
+		h.logger.Error("failed to update room", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "internal error"})
+	}
+	err := h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "start-game", room_temporal.StartGameSignal{})
+	if err != nil {
+		h.logger.Error("❌ Failed to signal start-game", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "temporal error"})
+	}
+	return c.JSON(fiber.Map{"message": "game started"})
+}
+
+// PlayerAction godoc
+// @Summary Игровое действие
+// @Description Отправка действия игрока в Temporal воркфлоу
+// @Tags Room
+// @Accept json
+// @Produce json
+// @Param body body dto.PlayerActionRequest true "Действие игрока"
+// @Success 200 {object} map[string]string
+// @Router /room/action [post]
+func (h *RoomHandler) PlayerAction(c *fiber.Ctx) error {
+	var req dto.PlayerActionRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+	}
+
+	err := h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "player-move", room_temporal.PlayerMoveSignal{
+		UserID: req.UserID,
+		Move:   req.Activity,
+	})
+	if err != nil {
+		h.logger.Error("❌ Failed to send player-move", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "failed to signal workflow"})
+	}
+
+	return c.JSON(fiber.Map{"message": "action received"})
 }

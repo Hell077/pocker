@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"poker/internal/modules/room/dto"
@@ -17,30 +18,39 @@ type RoomService struct {
 }
 
 type RoomServiceI interface {
-	CreateRoom(roomID string, maxPlayers int, limits string, roomType string) error
+	CreateRoom(ctx context.Context, req dto.CreateRoomRequest) (string, error)
+	UpdateRoomStatus(roomID, status string) error
 }
 
-func NewRoomService(repo *repo.RoomRepo, logger *zap.Logger) *RoomService {
-	return &RoomService{}
+func NewRoomService(repo *repo.RoomRepo, logger *zap.Logger, client client.Client) *RoomService {
+	return &RoomService{
+		repo:   *repo,
+		logger: logger,
+		client: client,
+	}
 }
 
-func (s *RoomService) CreateRoom(ctx context.Context, req dto.CreateRoomRequest) error {
+func (s *RoomService) CreateRoom(ctx context.Context, req dto.CreateRoomRequest) (string, error) {
 	room := &database.Room{
-		RoomID:     req.RoomID,
+		RoomID:     uuid.New().String(),
 		MaxPlayers: req.MaxPlayers,
 		Limits:     req.Limits,
 		Type:       req.Type,
 		Status:     "waiting",
 	}
-
+	RoomID := uuid.New().String()
 	if err := s.repo.CreateRoom(room); err != nil {
-		return err
+		return "", err
 	}
 
 	_, err := s.client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
-		ID:        "room_" + req.RoomID,
+		ID:        "room_" + RoomID,
 		TaskQueue: "room-task-queue",
-	}, room_temporal.StartRoomWorkflow, req.RoomID)
+	}, room_temporal.StartRoomWorkflow, RoomID)
 
-	return err
+	return RoomID, err
+}
+
+func (s *RoomService) UpdateRoomStatus(roomID, status string) error {
+	return s.repo.UpdateRoomStatus(roomID, status)
 }
