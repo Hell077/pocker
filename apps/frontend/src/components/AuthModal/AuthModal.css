@@ -1,0 +1,132 @@
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(6px);
+  animation: fadeOverlay 0.3s ease;
+}
+
+@keyframes fadeOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #1f1f2b;
+  padding: 32px;
+  border-radius: 16px;
+  border: 2px solid #ff2e63;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  animation: fadeInScale 0.3s ease-out;
+  transform: translateY(-10%);
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.auth-modal h2 {
+  text-align: left;
+  margin-bottom: 4px;
+  font-size: 1.3rem;
+  color: white;
+}
+
+.auth-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-modal input {
+  background: #2a2a3c;
+  border: 2px solid #444;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: white;
+  font-size: 0.95rem;
+  transition: border 0.2s;
+}
+
+.auth-modal input::placeholder {
+  color: #888;
+}
+
+.auth-modal input:focus {
+  outline: none;
+  border-color: #ff2e63;
+}
+
+.auth-submit {
+  background: #ff2e63;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: none;
+  align-self: flex-end;
+  margin-top: 6px;
+}
+
+.auth-submit:hover {
+  background: #ff4e78;
+}
+
+.auth-switch {
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+.auth-switch span {
+  color: #ff2e63;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.auth-switch span:hover {
+  text-decoration: underline;
+}
+
+.auth-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  color: #ff2e63;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.auth-close:hover {
+  transform: scale(1.2);
+}
