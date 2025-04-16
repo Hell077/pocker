@@ -1,10 +1,13 @@
-// components/Footer.tsx
 import React from 'react';
 import styles from './PockerFooter.module.css';
 import '../../root/root.css';
 import { Instagram, Twitter, Youtube } from 'lucide-react';
 
-const Footer: React.FC = () => {
+type Props = {
+    onRulesClick: () => void;
+};
+
+const Footer: React.FC<Props> = ({ onRulesClick }) => {
     return (
         <footer className={styles.footer}>
             <div className={styles.top}>
@@ -13,7 +16,7 @@ const Footer: React.FC = () => {
                 <nav className={styles.nav}>
                     <a href="#">Главная</a>
                     <a href="#">Турниры</a>
-                    <a href="#">Правила</a>
+                    <a onClick={onRulesClick} style={{ cursor: 'pointer' }}>Правила</a>
                     <a href="#">Поддержка</a>
                 </nav>
 

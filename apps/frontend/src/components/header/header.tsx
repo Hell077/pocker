@@ -1,50 +1,61 @@
-// components/Header.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './PockerHeader.module.css';
-import '../../root/root.css';
-import { User, Settings, LogOut, ChevronDown, Gamepad2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
 
-type Props = {
-    username: string;
-    avatarUrl: string;
-    balance: number;
-};
+interface Props {
+    onLoginClick: () => void;
+}
 
-const Header: React.FC<Props> = ({ username, avatarUrl, balance }) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+const Header: React.FC<Props> = ({ onLoginClick }) => {
+    const { user, logout } = useAuth();
+    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+    React.useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest(`.${styles.dropdownWrapper}`)) setIsMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
     return (
         <header className={styles.header}>
-            <div className={styles.logo}>♠ PokerKingdom</div>
+            <div className={styles.container}>
+                <div className={styles.logo}>♠ PokerKingdom</div>
 
-            <nav className={styles.nav}>
-                <a href="#" className={styles.link}>Home</a>
-                <a href="#" className={styles.link}>Tournaments</a>
-                <a href="#" className={styles.link}>Leaderboard</a>
-            </nav>
+                <nav className={styles.nav}>
+                    <a href="#" className={styles.link}>Home</a>
+                    <a href="#" className={styles.link}>Tournaments</a>
+                    <a href="#" className={styles.link}>Leaderboard</a>
+                </nav>
 
-            <div className={styles.rightSide}>
-                <button className={styles.playNow}>
-                    <Gamepad2 size={18} style={{ marginRight: 8 }} />
-                    Играть сейчас
-                </button>
-
-                <div className={styles.balance}>💰 {balance.toLocaleString()}</div>
-
-                <div className={styles.dropdownWrapper}>
-                    <div onClick={toggleMenu} className={styles.user}>
-                        <img src={avatarUrl} alt="Avatar" className={styles.avatar} />
-                        <span className={styles.username}>{username}</span>
-                        <ChevronDown size={16} />
-                    </div>
-
-                    <div className={`${styles.dropdown} ${isMenuOpen ? styles.show : ''}`}>
-                        <a href="#"><User size={16} /> Профиль</a>
-                        <a href="#"><Settings size={16} /> Настройки</a>
-                        <a href="#"><LogOut size={16} /> Выйти</a>
-                    </div>
+                <div className={styles.rightSide}>
+                    {!user ? (
+                        <>
+                            <button className={styles.loginBtn} onClick={onLoginClick}>Войти</button>
+                            <button className={styles.registerBtn} onClick={onLoginClick}>Зарегистрироваться</button>
+                        </>
+                    ) : (
+                        <>
+                            <div className={styles.balance}>💰 {user.balance.toLocaleString()}</div>
+                            <div className={styles.dropdownWrapper}>
+                                <div onClick={toggleMenu} className={styles.user}>
+                                    <img src={user.avatarUrl} alt="Avatar" className={styles.avatar} />
+                                    <span className={styles.username}>{user.username}</span>
+                                    <ChevronDown size={16} />
+                                </div>
+                                <div className={`${styles.dropdown} ${isMenuOpen ? styles.show : ''}`}>
+                                    <a href="#"><User size={16} /> Профиль</a>
+                                    <a href="#"><Settings size={16} /> Настройки</a>
+                                    <a onClick={logout}><LogOut size={16} /> Выйти</a>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </header>
