@@ -2,17 +2,14 @@ package temporal
 
 import (
 	"go.temporal.io/sdk/client"
+	room_temporal "poker/internal/modules/room/temporal"
 	//"user/internal/modules/user"
 )
 
 func StartWorkers(c client.Client) {
-	// Собираем все модули, реализующие TemporalModule
 	modules := []TemporalModule{
-		//user.NewUserTemporalModule(),
-		// auth.NewAuthTemporalModule(),
-		// order.NewOrderTemporalModule(),
+		room_temporal.NewRoomTemporalModule(),
 	}
 
-	// Запускаем все воркеры
 	StartAllWorkers(c, modules)
 }
