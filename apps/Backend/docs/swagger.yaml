@@ -33,6 +33,41 @@ definitions:
         example: your_refresh_token_here
         type: string
     type: object
+  poker_internal_modules_room_dto.CreateRoomRequest:
+    properties:
+      limits:
+        description: Например, "1/2" или "5/10"
+        type: string
+      max_players:
+        maximum: 10
+        minimum: 2
+        type: integer
+      type:
+        description: '"cash", "sitngo", "mtt"'
+        type: string
+    required:
+    - max_players
+    type: object
+  poker_internal_modules_room_dto.PlayerActionRequest:
+    properties:
+      activity:
+        type: string
+      roomID:
+        type: string
+      userID:
+        type: string
+    required:
+    - activity
+    - roomID
+    - userID
+    type: object
+  poker_internal_modules_room_dto.StartGameRequest:
+    properties:
+      roomID:
+        type: string
+    required:
+    - roomID
+    type: object
 info:
   contact: {}
   description: API documentation for Poker service.
@@ -150,6 +185,154 @@ paths:
       summary: Register new user
       tags:
       - Auth
+  /room/action:
+    post:
+      consumes:
+      - application/json
+      description: Отправка действия игрока в Temporal воркфлоу
+      parameters:
+      - description: Действие игрока
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.PlayerActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Игровое действие
+      tags:
+      - Room
+  /room/available-actions:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список допустимых ходов на текущий момент
+      parameters:
+      - description: ID комнаты
+        in: query
+        name: roomID
+        required: true
+        type: string
+      - description: ID игрока
+        in: query
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+      summary: Получение доступных действий игрока
+      tags:
+      - Room
+  /room/create-room:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую покерную комнату с заданными параметрами
+      parameters:
+      - description: Параметры комнаты
+        in: body
+        name: room
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Комната успешно создана
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации или тела запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание комнаты
+      tags:
+      - Room
+  /room/start-game:
+    post:
+      consumes:
+      - application/json
+      description: Меняет статус комнаты на playing
+      parameters:
+      - description: ID комнаты
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.StartGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запуск игры
+      tags:
+      - Room
+  /room/ws:
+    get:
+      description: Устанавливает WebSocket-соединение с покерной комнатой. Требуется
+        `roomID` и `userID` как query-параметры.
+      parameters:
+      - description: ID комнаты
+        in: query
+        name: roomID
+        required: true
+        type: string
+      - description: ID пользователя
+        in: query
+        name: userID
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "101":
+          description: WebSocket Upgrade
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "426":
+          description: Upgrade Required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подключение к комнате по WebSocket
+      tags:
+      - Room
 securityDefinitions:
   BearerAuth:
     in: header
