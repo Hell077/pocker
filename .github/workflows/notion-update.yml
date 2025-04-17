@@ -20,12 +20,11 @@ jobs:
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
 
-          # Извлекаем [POC-XX]
           TASK_ID=$(echo "$PR_TITLE" | grep -o '\[POC-[0-9]\+\]' | tr -d '[]')
           echo "Extracted Task ID: $TASK_ID"
 
           if [ -z "$TASK_ID" ]; then
-            echo "❌ Task ID not found in PR title. Expected format: [POC-XX]"
+            echo "❌ Task ID not found in PR title."
             exit 1
           fi
 
@@ -43,7 +42,7 @@ jobs:
               }
             }" > response.json
 
-          cat response.json # выводим, чтобы видеть, что вернулось
+          cat response.json
 
           PAGE_ID=$(jq -r '.results[0].id' response.json)
           echo "Found Page ID: $PAGE_ID"
