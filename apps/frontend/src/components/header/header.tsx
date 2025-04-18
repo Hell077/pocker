@@ -37,7 +37,6 @@ const Header: React.FC<Props> = ({ onLoginClick }) => {
                     {!user ? (
                         <>
                             <button className={styles.loginBtn} onClick={onLoginClick}>Войти</button>
-                            <button className={styles.registerBtn} onClick={onLoginClick}>Зарегистрироваться</button>
                         </>
                     ) : (
                         <>

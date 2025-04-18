@@ -1,0 +1,94 @@
+.lobby {
+    min-height: 100%;
+    width: 100%;
+    flex: 1;
+    padding: 4rem 2rem;
+    background: radial-gradient(ellipse at center, #0f0f1e 0%, #000 100%);
+    color: #fff;
+    font-family: "Segoe UI", "Montserrat", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+
+.lobby h1 {
+    font-size: 3.2rem;
+    color: #ff0077;
+    text-shadow: 0 0 20px rgba(255, 0, 119, 0.6);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.createButton {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff0077, #ff4da6);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(255, 0, 119, 0.4);
+    transition: 0.3s ease;
+    margin-bottom: 2rem;
+}
+
+.createButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 50px rgba(255, 0, 119, 0.8);
+}
+
+.roomList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2rem;
+    width: 100%;
+    padding-bottom: 2rem;
+}
+
+.roomCard {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.6rem;
+    transition: 0.25s ease-in-out;
+    box-shadow: 0 0 20px rgba(255, 0, 119, 0.1);
+}
+
+.roomCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 30px rgba(255, 0, 119, 0.2);
+}
+
+.roomCard p {
+    margin: 0.5rem 0;
+    color: #ddd;
+}
+
+.roomCard button {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 0.7rem;
+    font-weight: bold;
+    background: transparent;
+    color: #ff0077;
+    border: 2px solid #ff0077;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.roomCard button:hover {
+    background: #ff0077;
+    color: white;
+}
+
+.emptyMessage {
+    font-size: 1.4rem;
+    color: #aaa;
+    margin-top: 2rem;
+    text-align: center;
+}
