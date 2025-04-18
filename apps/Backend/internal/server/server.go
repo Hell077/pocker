@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
@@ -19,6 +20,12 @@ type AppServer struct {
 
 func NewServer(db *gorm.DB, c client.Client, logger *zap.Logger) *AppServer {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "*",
+		AllowMethods: "*",
+	}))
 
 	app.Use(func(ctx *fiber.Ctx) error {
 		logger.Info("📥 incoming request",
