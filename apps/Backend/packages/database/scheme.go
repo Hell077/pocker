@@ -8,6 +8,7 @@ import (
 type Account struct {
 	ID         string `gorm:"primaryKey"`
 	Password   string
+	Username   string
 	Email      string `gorm:"unique"`
 	AvatarLink string
 	Role       string `gorm:"default:user"` // user / admin / moderator

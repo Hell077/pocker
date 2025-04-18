@@ -4,6 +4,7 @@ package dto
 type RegisterRequest struct {
 	Email    string `json:"email" example:"user@example.com"`
 	Password string `json:"password" example:"strongpassword"`
+	Username string `json:"username" example:"username"`
 }
 
 // LoginRequest represents login input
