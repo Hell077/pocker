@@ -1,0 +1,118 @@
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2rem;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 0 30px rgba(255, 0, 119, 0.4);
+    text-align: center;
+    color: white;
+}
+
+.modal h2 {
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    color: #ff0077;
+    text-shadow: 0 0 15px rgba(255, 0, 119, 0.6);
+}
+
+label {
+    display: block;
+    margin: 1.2rem 0 0.5rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+input {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 1rem;
+}
+
+.optionGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.optionButton {
+    padding: 0.6rem 0.8rem;
+    background: transparent;
+    border: 2px solid #ff0077;
+    border-radius: 10px;
+    color: #ff0077;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.optionButton:hover {
+    background: #ff0077;
+    color: white;
+}
+
+.selected {
+    background: #ff0077;
+    color: white;
+}
+
+.actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+
+.cancel,
+.confirm {
+    flex: 1;
+    padding: 0.7rem;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.cancel {
+    background: transparent;
+    border: 2px solid #888;
+    color: #aaa;
+}
+
+.cancel:hover {
+    background: #333;
+}
+
+.confirm {
+    background: linear-gradient(135deg, #ff0077, #ff4da6);
+    color: white;
+    border: none;
+    box-shadow: 0 0 15px rgba(255, 0, 119, 0.5);
+}
+
+.confirm:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 30px rgba(255, 0, 119, 0.7);
+}

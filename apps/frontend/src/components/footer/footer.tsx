@@ -15,7 +15,6 @@ const Footer: React.FC<Props> = ({ onRulesClick }) => {
 
                 <nav className={styles.nav}>
                     <a href="#">Главная</a>
-                    <a href="#">Турниры</a>
                     <a onClick={onRulesClick} style={{ cursor: 'pointer' }}>Правила</a>
                     <a href="#">Поддержка</a>
                 </nav>

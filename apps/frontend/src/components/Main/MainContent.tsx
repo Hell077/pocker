@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import styles from './MainContent.module.css';
 
+type Props = {
+    onPlay: () => void;
+};
+
 const cardNames = [
     'AH', '2H', '3H', '4H', '5H', '6H', '7H', '8H', '9H', '10H', 'JH', 'QH', 'KH',
     'AD', '2D', '3D', '4D', '5D', '6D', '7D', '8D', '9D', '10D', 'JD', 'QD', 'KD',
@@ -12,7 +16,7 @@ const getRandomCard = () => {
     return `/cards/${cardNames[Math.floor(Math.random() * cardNames.length)]}.png`;
 };
 
-const MainContent: React.FC = () => {
+const MainContent: React.FC<Props> = ({ onPlay }) => {
     const [cards, setCards] = useState<
         { id: number; front: string; left: string; rotate: string; duration: string }[]
     >([]);
@@ -27,10 +31,10 @@ const MainContent: React.FC = () => {
                     front: getRandomCard(),
                     left: `${Math.random() * 90}%`,
                     rotate: `
-            rotateX(${Math.random() * 20 - 10}deg)
-            rotateY(${Math.random() * 20 - 10}deg)
-            rotateZ(${Math.random() * 30 - 15}deg)
-          `,
+                        rotateX(${Math.random() * 20 - 10}deg)
+                        rotateY(${Math.random() * 20 - 10}deg)
+                        rotateZ(${Math.random() * 30 - 15}deg)
+                    `,
                     duration: `${8 + Math.random() * 4}s`
                 };
 
@@ -71,7 +75,7 @@ const MainContent: React.FC = () => {
 
             <div className={styles.overlay}>
                 <h1 className={styles.title}>Welcome to Poker</h1>
-                <button className={styles["play-button"]}>PLAY</button>
+                <button className={styles["play-button"]} onClick={onPlay}>PLAY</button>
             </div>
         </div>
     );
