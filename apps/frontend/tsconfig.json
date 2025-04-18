@@ -8,8 +8,6 @@
         "baseUrl": ".",
         "paths": {
           "@hooks/*": ["src/hooks/*"],
-          "@components/*": ["src/components/*"],
-          "@utils/*": ["src/utils/*"]
         }
       }
     }
