@@ -242,3 +242,27 @@ func (h *RoomHandler) AvailableActions(c *fiber.Ctx) error {
 		"actions": available,
 	})
 }
+
+// DealCards godoc
+// @Summary Раздача карт
+// @Description Отправляет сигнал в Temporal для раздачи карт
+// @Tags Room
+// @Accept json
+// @Produce json
+// @Param body body dto.StartGameRequest true "ID комнаты"
+// @Success 200 {object} map[string]string
+// @Router /room/deal-cards [post]
+func (h *RoomHandler) DealCards(c *fiber.Ctx) error {
+	var req dto.StartGameRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+	}
+
+	err := h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "deal-cards", room_temporal.DealCardsSignal{})
+	if err != nil {
+		h.logger.Error("❌ Failed to signal deal-cards", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "temporal error"})
+	}
+
+	return c.JSON(fiber.Map{"message": "cards dealt"})
+}

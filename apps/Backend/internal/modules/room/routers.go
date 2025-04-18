@@ -22,6 +22,7 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 	RoomGroup.Post("/start-game", RoomHandler.StartGame)
 	RoomGroup.Post("/action", RoomHandler.PlayerAction)
 	RoomGroup.Get("/available-actions", RoomHandler.AvailableActions)
+	RoomGroup.Post("/deal-cards", RoomHandler.DealCards)
 
 	RoomGroup.Use("/ws", middleware.WebSocketUpgradeRequired())
 	RoomGroup.Get("/ws", websocket.New(func(c *websocket.Conn) {

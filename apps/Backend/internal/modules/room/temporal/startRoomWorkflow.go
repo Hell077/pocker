@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
+	"math/rand"
 	"time"
 )
 
 type JoinRoomSignal struct {
 	UserID string
 }
+
+type DealCardsSignal struct{}
 
 type StartGameSignal struct{}
 
@@ -36,6 +39,8 @@ type RoomState struct {
 	Pot           int64
 	MoveLog       []string
 	GameStarted   bool
+	PlayerCards   map[string][]string // 🃏 личные карты игрока
+	Deck          []string            // 🎴 колода
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
@@ -100,6 +105,34 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			logger.Info("🎮 Game started", "firstPlayer", state.CurrentPlayer)
 			sendToAllPlayers(ctx, state.Players, "🎮 Game started!")
 			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
+		})
+
+		dealCardsChan := workflow.GetSignalChannel(ctx, "deal-cards")
+
+		selector.AddReceive(dealCardsChan, func(c workflow.ReceiveChannel, _ bool) {
+			var s DealCardsSignal
+			c.Receive(ctx, &s)
+
+			state.Deck = GenerateShuffledDeck(ctx)
+			state.PlayerCards = make(map[string][]string)
+
+			i := 0
+			for _, playerID := range state.PlayerOrder {
+				if len(state.Deck) < 2 {
+					logger.Error("😨 Not enough cards to deal")
+					break
+				}
+
+				cards := []string{state.Deck[i], state.Deck[i+1]}
+				state.PlayerCards[playerID] = cards
+				state.Deck = state.Deck[2:]
+
+				// отправим игроку его карты
+				msg := fmt.Sprintf("🎴 Your cards: %s, %s", cards[0], cards[1])
+				_ = workflow.ExecuteActivity(ctx, SendMessageActivity, playerID, msg)
+			}
+
+			sendToAllPlayers(ctx, state.Players, "🃏 Cards have been dealt")
 		})
 
 		selector.AddReceive(joinChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -212,6 +245,30 @@ func NextTurn(state *RoomState) {
 			return
 		}
 	}
-	// никто не остался — круг окончен
 	state.CurrentPlayer = ""
+}
+
+func GenerateShuffledDeck(ctx workflow.Context) []string {
+	suits := []string{"♠", "♥", "♦", "♣"}
+	values := []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
+
+	var deck []string
+	for _, suit := range suits {
+		for _, value := range values {
+			deck = append(deck, value+suit)
+		}
+	}
+
+	var shuffled []string
+	_ = workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		shuffledCopy := append([]string(nil), deck...) // копия
+		for i := range shuffledCopy {
+			j := r.Intn(i + 1)
+			shuffledCopy[i], shuffledCopy[j] = shuffledCopy[j], shuffledCopy[i]
+		}
+		return shuffledCopy
+	}).Get(&shuffled)
+
+	return shuffled
 }
