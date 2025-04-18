@@ -12,7 +12,7 @@ import (
 )
 
 type AuthService interface {
-	Register(email, password string) error
+	Register(email, password, username string) error
 	Login(email, password string) (string, string, error) // access, refresh
 	RefreshToken(refresh string) (string, error)
 }
@@ -26,7 +26,7 @@ func NewAuthService(r repo.AuthRepo, logger *zap.Logger) AuthService {
 	return &authService{repo: r, logger: logger}
 }
 
-func (s *authService) Register(email, password string) error {
+func (s *authService) Register(email, password, username string) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -36,6 +36,7 @@ func (s *authService) Register(email, password string) error {
 		ID:       generateUUID(),
 		Email:    email,
 		Password: string(hashedPassword),
+		Username: username,
 	}
 
 	if err := s.repo.CreateAccount(account); err != nil {
