@@ -2,21 +2,41 @@ import React from 'react';
 import styles from './PockerFooter.module.css';
 import '../../root/root.css';
 import { Instagram, Twitter, Youtube } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 type Props = {
     onRulesClick: () => void;
+    onGoHome: () => void;
 };
 
-const Footer: React.FC<Props> = ({ onRulesClick }) => {
+const Footer: React.FC<Props> = ({ onRulesClick, onGoHome }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleGoHome = () => {
+        if (location.pathname === "/") {
+            onGoHome();
+        } else {
+            navigate("/");
+        }
+    };
+
+    const handleRulesClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onRulesClick();
+    };
+
     return (
         <footer className={styles.footer}>
             <div className={styles.top}>
-                <div className={styles.logo}>♠ PokerKingdom</div>
+                <div className={styles.logo} onClick={handleGoHome} style={{ cursor: 'pointer' }}>
+                    ♠ PokerKingdom
+                </div>
 
                 <nav className={styles.nav}>
-                    <a href="#">Главная</a>
-                    <a onClick={onRulesClick} style={{ cursor: 'pointer' }}>Правила</a>
-                    <a href="#">Поддержка</a>
+                    <a onClick={handleRulesClick} style={{ cursor: 'pointer' }}>
+                        Правила
+                    </a>
                 </nav>
 
                 <div className={styles.socials}>
