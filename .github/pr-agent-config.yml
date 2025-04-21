@@ -7,6 +7,12 @@ pr_review:
   publish_review_as_comment: true
   enable_inline_comments: true
   enable_summarization: true
+
+config:
+  git_provider: github
+  model: openrouter/openai/gpt-4
   fallback_models:
-    - mistral-7b-instruct
-    - gpt-3.5-turbo
+    - openrouter/openai/gpt-3.5-turbo
+  publish_output: true
+  response_language: en-US
+  reasoning_effort: medium
