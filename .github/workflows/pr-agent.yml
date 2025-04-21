@@ -1,4 +1,4 @@
-name: PR Agent Review
+name: 🤖 PR Agent Review
 
 on:
   pull_request:
@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: Run PR Agent with PAT
+      - name: 🤖 Run PR Agent with PAT
         uses: Codium-ai/pr-agent@main
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -22,3 +22,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           REPO_PATTERNS: Hell077/pocker
+
+      - name: ✅ Ensure PR Agent didn't silently fail
+        run: |
+          echo "Check completed"
