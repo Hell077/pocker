@@ -26,6 +26,9 @@ definitions:
       password:
         example: strongpassword
         type: string
+      username:
+        example: username
+        type: string
     type: object
   internal_modules_auth_handler.RefreshTokenRequest:
     properties:

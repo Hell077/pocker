@@ -484,6 +484,10 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "strongpassword"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "username"
                 }
             }
         },

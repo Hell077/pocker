@@ -33,6 +33,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	type req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Username string `json:"username"`
 	}
 	var body req
 	if err := c.BodyParser(&body); err != nil {
@@ -40,7 +41,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(400).SendString("invalid input")
 	}
 
-	err := h.service.Register(body.Email, body.Password)
+	err := h.service.Register(body.Email, body.Password, body.Username)
 	if err != nil {
 		h.logger.Error("registration failed", zap.Error(err))
 		return c.Status(500).SendString("registration failed")

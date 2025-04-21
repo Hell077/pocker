@@ -11,7 +11,7 @@
     "db:status": "atlas migrate status --env local",
     "db:hash": "atlas migrate hash --env local",
     "db:diff": "atlas migrate diff --env gorm",
-    "db:apply": "atlas migrate apply --env local ",
+    "db:apply": "atlas migrate apply --env local",
     "db:apply:prod": "atlas migrate apply --env production",
     "db:revert": "atlas migrate down --env local"
   }
