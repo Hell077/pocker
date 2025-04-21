@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Coins, X } from "lucide-react";
 import styles from "./CreateRoomModal.module.css";
 
 type Props = {
@@ -20,6 +21,10 @@ export const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
     return (
         <div className={styles.backdrop}>
             <div className={styles.modal}>
+                <button className={styles.closeButton} onClick={onClose}>
+                    <X size={20} />
+                </button>
+
                 <h2>Create Poker Room</h2>
 
                 <label>Room Name</label>
@@ -39,6 +44,7 @@ export const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
                                 maxPlayers === num ? styles.selected : ""
                             }`}
                             onClick={() => setMaxPlayers(num)}
+                            title={`Set max players to ${num}`}
                         >
                             {num}
                         </button>
@@ -54,8 +60,9 @@ export const CreateRoomModal: React.FC<Props> = ({ onClose, onCreate }) => {
                                 limits === chip ? styles.selected : ""
                             }`}
                             onClick={() => setLimits(chip)}
+                            title={`Set minimum bet to ${chip}`}
                         >
-                            💰 {chip}
+                            <Coins className={styles.icon} /> {chip}
                         </button>
                     ))}
                 </div>

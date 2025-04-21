@@ -1,11 +1,18 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Header from "../../components/header/header.tsx";
 import Footer from "../../components/footer/footer.tsx";
 import styles from "./TablePage.module.css";
 
-const TablePage: React.FC = () => {
+type Props = {
+    onRulesClick: () => void;
+    onGoHome: () => void;
+};
+
+const TablePage: React.FC<Props> = ({ onRulesClick, onGoHome }) => {
     const { roomId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const players = [
         { name: "Player 1", bet: 0 },
@@ -16,15 +23,24 @@ const TablePage: React.FC = () => {
         { name: "Player 6", bet: 1000 },
     ];
 
-    const activeIndex = 2; // индекс активного игрока (0-based)
-
+    const activeIndex = 2;
     const totalBets = players.reduce((sum, p) => sum + p.bet, 0);
+
+    const handleGoHome = () => {
+        if (location.pathname === "/") {
+            onGoHome();
+        } else {
+            navigate("/");
+        }
+    };
 
     return (
         <div className={styles.app}>
-            <Header onLoginClick={() => {}} />
+            <Header onLoginClick={() => {}} onGoHome={handleGoHome} />
+
             <main className={styles.main}>
                 <h2 className={styles.title}>Room: {roomId}</h2>
+
                 <div className={styles.table}>
                     {/* 👤 Дилер */}
                     <div className={styles.dealer}>
@@ -34,11 +50,9 @@ const TablePage: React.FC = () => {
 
                     {/* 🂠 Стол под 5 карт */}
                     <div className={styles.cardBoard}>
-                        <div className={styles.cardSlot}></div>
-                        <div className={styles.cardSlot}></div>
-                        <div className={styles.cardSlot}></div>
-                        <div className={styles.cardSlot}></div>
-                        <div className={styles.cardSlot}></div>
+                        {[...Array(5)].map((_, idx) => (
+                            <div key={idx} className={styles.cardSlot}></div>
+                        ))}
                     </div>
 
                     {/* 🧍 Игроки */}
@@ -59,7 +73,8 @@ const TablePage: React.FC = () => {
                     <div className={styles.pot}>🟣 3200</div>
                 </div>
             </main>
-            <Footer onRulesClick={() => {}} />
+
+            <Footer onRulesClick={onRulesClick} onGoHome={handleGoHome} />
         </div>
     );
 };

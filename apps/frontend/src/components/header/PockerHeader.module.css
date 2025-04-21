@@ -1,98 +1,98 @@
 /* ==== PockerHeader.module.css (перезапуск) ==== */
 
 .header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    background: linear-gradient(to right, #121212, #1f1f2b);
-    border-bottom: 2px solid #ff2e63;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: linear-gradient(to right, #121212, #1f1f2b);
+  border-bottom: 2px solid #ff2e63;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
 }
 
 .container {
-    max-width: 1400px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-sizing: border-box;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
 .logo {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #ff2e63;
-    animation: pulse 1.5s infinite;
-    white-space: nowrap;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ff2e63;
+  animation: pulse 1.5s infinite;
+  white-space: nowrap;
 }
 
 @keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .nav {
-    display: flex;
-    gap: 32px;
-    justify-content: center;
-    align-items: center;
-    flex: 1;
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
 }
 
 .link {
-    color: #ccc;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s;
-    position: relative;
+  color: #ccc;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+  position: relative;
 }
 
 .link::after {
-    content: "";
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 0%;
-    height: 2px;
-    background: #ff2e63;
-    transition: width 0.3s;
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: #ff2e63;
+  transition: width 0.3s;
 }
 
 .link:hover {
-    color: #ff2e63;
+  color: #ff2e63;
 }
 
 .link:hover::after {
-    width: 100%;
+  width: 100%;
 }
 
 .rightSide {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .loginBtn,
 .registerBtn {
-    background: transparent;
-    border: 2px solid #ff2e63;
-    color: #ff2e63;
-    padding: 8px 16px;
-    border-radius: 999px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
+  background: transparent;
+  border: 2px solid #ff2e63;
+  color: #ff2e63;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .loginBtn:hover,
 .registerBtn:hover {
-    background: #ff2e63;
-    color: #fff;
+  background: #ff2e63;
+  color: #fff;
 }
