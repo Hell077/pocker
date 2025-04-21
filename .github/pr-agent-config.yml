@@ -1,0 +1,12 @@
+pr_description:
+  publish_description_as_comment: true
+  use_bullet_points: true
+  enable_pr_type: true
+
+pr_review:
+  publish_review_as_comment: true
+  enable_inline_comments: true
+  enable_summarization: true
+  fallback_models:
+    - mistral-7b-instruct
+    - gpt-3.5-turbo
