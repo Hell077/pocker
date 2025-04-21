@@ -1,27 +1,23 @@
-name: GolangCI Lint
+name: Lint Go code
 
-on: [pull_request, push]
+on: [push, pull_request]
 
 jobs:
   golangci-lint:
-    name: Lint Go code
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21
+          go-version: 1.24.2
 
       - name: Install golangci-lint and reviewdog
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b /usr/local/bin v1.55.2
-          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh \
-            | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.55.2
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Run golangci-lint with reviewdog (CLI)
         working-directory: apps/Backend
@@ -30,4 +26,3 @@ jobs:
           | reviewdog -f=golangci-lint -reporter=github-pr-review -fail-on-error=true
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
