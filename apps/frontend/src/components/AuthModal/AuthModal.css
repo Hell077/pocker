@@ -1,110 +1,154 @@
 .auth-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  backdrop-filter: blur(6px);
   animation: fadeOverlay 0.3s ease;
 }
 
-@keyframes fadeOverlay {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.auth-overlay.fade-out {
+  animation: fadeOut 0.2s forwards;
 }
 
+@keyframes fadeOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* === МОДАЛКА === */
 .auth-modal {
   width: 100%;
   max-width: 420px;
-  background: #1f1f2b;
-  padding: 32px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  padding: 32px 24px;
   border-radius: 16px;
-  border: 2px solid #ff2e63;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+          0 0 15px rgba(255, 46, 99, 0.25),
+          0 20px 50px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: 20px;
   position: relative;
   animation: fadeInScale 0.3s ease-out;
   transform: translateY(-10%);
+  color: #fff;
+}
+
+.auth-modal.fade-out {
+  animation: fadeModalOut 0.2s forwards;
 }
 
 @keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeModalOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.9); }
 }
 
 .auth-modal h2 {
   text-align: left;
-  margin-bottom: 4px;
-  font-size: 1.3rem;
-  color: white;
+  margin-bottom: 8px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
-.auth-modal form {
+/* === ФОРМА === */
+.auth-modal form.auth-modal-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  margin: 12px 0;
+  transition: opacity 0.3s ease;
 }
 
+.auth-modal-content.fade {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.auth-modal-content.shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-6px); }
+  50%  { transform: translateX(6px); }
+  75%  { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+/* === ИНПУТЫ === */
 .auth-modal input {
-  background: #2a2a3c;
-  border: 2px solid #444;
-  border-radius: 8px;
-  padding: 10px 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
   color: white;
   font-size: 0.95rem;
-  transition: border 0.2s;
+  transition: all 0.3s ease;
 }
 
 .auth-modal input::placeholder {
-  color: #888;
+  color: #ccc;
 }
 
 .auth-modal input:focus {
   outline: none;
-  border-color: #ff2e63;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
 }
 
+/* === КНОПКА === */
 .auth-submit {
-  background: #ff2e63;
+  background: linear-gradient(135deg, #ff2e63, #ff6c9c);
   color: white;
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: bold;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s ease;
   border: none;
   align-self: flex-end;
-  margin-top: 6px;
+  margin-top: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 20px rgba(255, 46, 99, 0.4);
 }
 
 .auth-submit:hover {
-  background: #ff4e78;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(255, 46, 99, 0.6);
 }
 
+/* === СМЕНА ФОРМЫ === */
 .auth-switch {
   text-align: center;
-  color: #aaa;
+  color: #ddd;
   font-size: 0.9rem;
   margin-top: 12px;
 }
 
 .auth-switch span {
-  color: #ff2e63;
+  color: #ff6c9c;
   cursor: pointer;
   font-weight: 500;
   margin-left: 6px;
@@ -114,6 +158,7 @@
   text-decoration: underline;
 }
 
+/* === КРЕСТИК === */
 .auth-close {
   position: absolute;
   top: 14px;
@@ -121,7 +166,7 @@
   background: transparent;
   border: none;
   font-size: 1.3rem;
-  color: #ff2e63;
+  color: #ff6c9c;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -129,4 +174,33 @@
 
 .auth-close:hover {
   transform: scale(1.2);
+}
+
+/* === ПАРОЛЬ: глазик из lucide === */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  padding-right: 48px !important;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #ff6c9c;
+  user-select: none;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  opacity: 0.8;
 }

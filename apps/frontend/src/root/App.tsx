@@ -1,16 +1,26 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import MainPage from "../pages/MainPage/main.tsx";
+
+import MainPage from "../pages/MainPage/main";
+import TablePage from "../pages/TablePage/TablePage";
+import LeaderboardPage from "../pages/LeaderboardPage/LeaderboardPage";
+import Lobby from "../components/Lobby/Lobby";
+
 import AuthModal from "../components/AuthModal/AuthModal";
 import RulesModal from "../components/RulesModal/RulesModal";
-import TablePage from "../pages/TablePage/TablePage"; // ✅ Импортируем страницу стола
 
 function App() {
     const [isAuthModalOpen, setAuthModalOpen] = useState(false);
     const [isRulesModalOpen, setRulesModalOpen] = useState(false);
 
+    const navigate = useNavigate();
+
+    const goHome = () => {
+        navigate("/");
+    };
+
     return (
-        <BrowserRouter>
+        <>
             <Routes>
                 <Route
                     path="/"
@@ -20,11 +30,22 @@ function App() {
                             openRulesModal={() => setRulesModalOpen(true)}
                         />
                     }
+                >
+                    <Route path="leaderboard" element={<LeaderboardPage />} />
+                    <Route path="lobby" element={<Lobby />} />
+                </Route>
+
+                <Route
+                    path="/table/:roomId"
+                    element={
+                        <TablePage
+                            onRulesClick={() => setRulesModalOpen(true)}
+                            onGoHome={goHome}
+                        />
+                    }
                 />
-                <Route path="/table/:roomId" element={<TablePage />} /> {/* ✅ Добавили маршрут */}
             </Routes>
 
-            {/* Модалки вне роутов */}
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setAuthModalOpen(false)}
@@ -33,7 +54,7 @@ function App() {
                 isOpen={isRulesModalOpen}
                 onClose={() => setRulesModalOpen(false)}
             />
-        </BrowserRouter>
+        </>
     );
 }
 
