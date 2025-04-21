@@ -22,5 +22,5 @@ jobs:
           AUTO_DESCRIBE: "true"
           PR_AGENT_LLM_PROVIDER: openrouter
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-          REPO_PATTERNS: Hell077/pocker
