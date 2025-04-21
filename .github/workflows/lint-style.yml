@@ -18,6 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: apps/frontend
 
       - name: Run stylelint with ReviewDog
         uses: reviewdog/action-stylelint@v1
@@ -25,3 +26,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
           stylelint_input: "**/*.{css,scss}"
+        working-directory: apps/frontend
