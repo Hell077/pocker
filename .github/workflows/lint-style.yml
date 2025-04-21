@@ -5,6 +5,7 @@ on: [pull_request, push]
 jobs:
   lint-style:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,9 +19,15 @@ jobs:
         working-directory: apps/frontend
         run: npm ci
 
-      - name: Run Stylelint with ReviewDog (CLI)
+      - name: Install reviewdog
+        run: |
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh \
+          | sh -s -- -b /usr/local/bin
+
+      - name: Run Stylelint with ReviewDog
         working-directory: apps/frontend
         run: |
-          npx stylelint "**/*.{css,scss}"           | npx reviewdog -f=stylelint -reporter=github-pr-review
+          npx stylelint "**/*.{css,scss}" \
+          | reviewdog -f=stylelint -reporter=github-pr-review -fail-on-error=true
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
