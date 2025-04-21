@@ -9,19 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: "🔍 DEBUG: Show if key exists"
-        run: echo "OpenRouter key: ${{ secrets.OPENROUTER_API_KEY }}"
-
       - name: 📥 Checkout code
         uses: actions/checkout@v3
 
       - name: 🔧 Run PR Agent with PAT
         uses: Codium-ai/pr-agent@main
+        with:
+          config-file: ./.github/pr-agent-config.yml  # если есть, необязательный шаг
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           AUTO_REVIEW: "true"
           AUTO_DESCRIBE: "true"
           PR_AGENT_LLM_PROVIDER: openrouter
-          OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           REPO_PATTERNS: Hell077/pocker

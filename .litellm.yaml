@@ -1,7 +1,8 @@
 model_list:
-  - model_name: gpt-4
+  - model_name: o4-mini
     litellm_provider: openrouter
     api_key: ${OPENROUTER_API_KEY}
-  - model_name: gpt-3.5-turbo
+
+  - model_name: gpt-4.1
     litellm_provider: openrouter
     api_key: ${OPENROUTER_API_KEY}
