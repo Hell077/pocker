@@ -80,3 +80,7 @@ func runMigrations() {
 
 	log.Println("✅ Migrations hashed and applied successfully")
 }
+
+func Test(t interface{}) any {
+	return t
+}
