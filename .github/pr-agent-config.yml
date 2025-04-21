@@ -6,3 +6,8 @@ config:
   publish_output: true
   response_language: en-US
   reasoning_effort: medium
+
+auto_suggestions:
+  enabled: true
+  mode: diff
+  suggestion_type: code
