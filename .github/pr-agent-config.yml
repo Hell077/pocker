@@ -10,9 +10,9 @@ pr_review:
 
 config:
   git_provider: github
-  model: openrouter/openrouter/openai/gpt-4
+  model: openai/gpt-3.5-turbo
   fallback_models:
-  - openrouter/openrouter/openai/gpt-3.5-turbo
+    - openai/gpt-4
   publish_output: true
   response_language: en-US
   reasoning_effort: medium
