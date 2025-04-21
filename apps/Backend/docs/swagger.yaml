@@ -272,6 +272,30 @@ paths:
       summary: Создание комнаты
       tags:
       - Room
+  /room/deal-cards:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет сигнал в Temporal для раздачи карт
+      parameters:
+      - description: ID комнаты
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.StartGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Раздача карт
+      tags:
+      - Room
   /room/start-game:
     post:
       consumes:
