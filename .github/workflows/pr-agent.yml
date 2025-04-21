@@ -11,6 +11,14 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v3
+      - name: 🔍 DEBUG key check
+
+        run: |
+          echo "🔑 OPENROUTER_API_KEY=$OPENROUTER_API_KEY"
+          echo "🔑 LITELLM_API_KEY=$LITELLM_API_KEY"
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LITELLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       - name: 🔧 Run PR Agent with PAT
         uses: Codium-ai/pr-agent@main
@@ -23,4 +31,7 @@ jobs:
           PR_AGENT_LLM_PROVIDER: openrouter
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LITELLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+
