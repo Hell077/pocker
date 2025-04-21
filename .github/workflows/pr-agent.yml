@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: "🔍 DEBUG: Show if key exists"
+        run: echo "OpenRouter key: ${{ secrets.OPENROUTER_API_KEY }}"
+
       - name: 📥 Checkout code
         uses: actions/checkout@v3
 
