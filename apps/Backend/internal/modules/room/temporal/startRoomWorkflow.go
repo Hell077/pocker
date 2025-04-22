@@ -53,7 +53,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		StartTime: workflow.Now(ctx),
 	}
 
-	hasHadPlayers := false // 💡 кто-либо когда-либо подключался
+	hasHadPlayers := false
 
 	startGameChan := workflow.GetSignalChannel(ctx, "start-game")
 	joinChan := workflow.GetSignalChannel(ctx, "join-room")
@@ -113,23 +113,32 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			var s DealCardsSignal
 			c.Receive(ctx, &s)
 
+			// 🕐 обязательно!
+			ao := workflow.ActivityOptions{
+				StartToCloseTimeout: 5 * time.Second,
+			}
+			ctx = workflow.WithActivityOptions(ctx, ao)
+
 			state.Deck = GenerateShuffledDeck(ctx)
 			state.PlayerCards = make(map[string][]string)
 
-			i := 0
 			for _, playerID := range state.PlayerOrder {
 				if len(state.Deck) < 2 {
 					logger.Error("😨 Not enough cards to deal")
 					break
 				}
 
-				cards := []string{state.Deck[i], state.Deck[i+1]}
+				cards := []string{state.Deck[0], state.Deck[1]}
 				state.PlayerCards[playerID] = cards
 				state.Deck = state.Deck[2:]
 
-				// отправим игроку его карты
+				eventName := fmt.Sprintf("deal-card-user-%s", playerID)
+				state.MoveLog = append(state.MoveLog, eventName)
+
 				msg := fmt.Sprintf("🎴 Your cards: %s, %s", cards[0], cards[1])
-				_ = workflow.ExecuteActivity(ctx, SendMessageActivity, playerID, msg)
+				logger.Info("📨 Dealt cards", "event", eventName, "cards", cards)
+
+				_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, msg)
 			}
 
 			sendToAllPlayers(ctx, state.Players, "🃏 Cards have been dealt")
