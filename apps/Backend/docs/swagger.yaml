@@ -209,6 +209,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Игровое действие
       tags:
       - Room
@@ -239,6 +241,8 @@ paths:
                 type: string
               type: array
             type: object
+      security:
+      - BearerAuth: []
       summary: Получение доступных действий игрока
       tags:
       - Room
@@ -272,7 +276,35 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Создание комнаты
+      tags:
+      - Room
+  /room/deal-cards:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет сигнал в Temporal для раздачи карт
+      parameters:
+      - description: ID комнаты
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/poker_internal_modules_room_dto.StartGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Раздача карт
       tags:
       - Room
   /room/start-game:
@@ -296,6 +328,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Запуск игры
       tags:
       - Room
@@ -333,6 +367,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Подключение к комнате по WebSocket
       tags:
       - Room
