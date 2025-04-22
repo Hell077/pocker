@@ -1,0 +1,7 @@
+model_list:
+  - model_name: gpt-4.1
+    litellm_provider: openrouter
+    api_key: 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
+  - model_name: o4-mini
+    litellm_provider: openrouter
+    api_key: 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
