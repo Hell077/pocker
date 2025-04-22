@@ -209,6 +209,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Игровое действие
       tags:
       - Room
@@ -239,6 +241,8 @@ paths:
                 type: string
               type: array
             type: object
+      security:
+      - BearerAuth: []
       summary: Получение доступных действий игрока
       tags:
       - Room
@@ -272,6 +276,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Создание комнаты
       tags:
       - Room
@@ -296,6 +302,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Раздача карт
       tags:
       - Room
@@ -320,6 +328,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Запуск игры
       tags:
       - Room
@@ -357,6 +367,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Подключение к комнате по WebSocket
       tags:
       - Room

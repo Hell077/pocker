@@ -39,6 +39,7 @@ func NewRoomHandler(s *service.RoomService, logger *zap.Logger, temporal client.
 // @Failure      400  {object}  map[string]interface{}  "Ошибка валидации или тела запроса"
 // @Failure      500  {object}  map[string]interface{}  "Внутренняя ошибка сервера"
 // @Router       /room/create-room [post]
+// @Security BearerAuth
 func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 	var req dto.CreateRoomRequest
 	var ctx context.Context
@@ -81,6 +82,7 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 // @Failure      400  {object}  map[string]string  "Bad Request"
 // @Failure      426  {object}  map[string]string  "Upgrade Required"
 // @Router       /room/ws [get]
+// @Security BearerAuth
 func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
 	defer func() {
 		h.logger.Info("🔌 Disconnected", zap.String("remote", c.RemoteAddr().String()))
@@ -158,6 +160,7 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
 // @Param body body dto.StartGameRequest true "ID комнаты"
 // @Success 200 {object} map[string]string
 // @Router /room/start-game [post]
+// @Security BearerAuth
 func (h *RoomHandler) StartGame(c *fiber.Ctx) error {
 	var req dto.StartGameRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -184,6 +187,7 @@ func (h *RoomHandler) StartGame(c *fiber.Ctx) error {
 // @Param body body dto.PlayerActionRequest true "Действие игрока"
 // @Success 200 {object} map[string]string
 // @Router /room/action [post]
+// @Security BearerAuth
 func (h *RoomHandler) PlayerAction(c *fiber.Ctx) error {
 	var req dto.PlayerActionRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -212,6 +216,7 @@ func (h *RoomHandler) PlayerAction(c *fiber.Ctx) error {
 // @Param userID query string true "ID игрока"
 // @Success 200 {object} map[string][]string
 // @Router /room/available-actions [get]
+// @Security BearerAuth
 func (h *RoomHandler) AvailableActions(c *fiber.Ctx) error {
 	roomID := c.Query("roomID")
 	userID := c.Query("userID")
@@ -252,6 +257,7 @@ func (h *RoomHandler) AvailableActions(c *fiber.Ctx) error {
 // @Param body body dto.StartGameRequest true "ID комнаты"
 // @Success 200 {object} map[string]string
 // @Router /room/deal-cards [post]
+// @Security BearerAuth
 func (h *RoomHandler) DealCards(c *fiber.Ctx) error {
 	var req dto.StartGameRequest
 	if err := c.BodyParser(&req); err != nil {

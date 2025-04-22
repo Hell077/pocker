@@ -6,6 +6,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"os"
 	"poker/internal/middleware"
 	"poker/internal/modules/room/handler"
 	"poker/internal/modules/room/repo"
@@ -18,6 +19,7 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 	RoomHandler := handler.NewRoomHandler(RoomService, logger, temporal)
 
 	RoomGroup := router.Group("/room")
+	RoomGroup.Use(middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")))
 	RoomGroup.Post("/create-room", RoomHandler.CreateRoom)
 	RoomGroup.Post("/start-game", RoomHandler.StartGame)
 	RoomGroup.Post("/action", RoomHandler.PlayerAction)
