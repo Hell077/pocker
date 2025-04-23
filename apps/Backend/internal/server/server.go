@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"poker/internal/modules/auth"
 	"poker/internal/modules/room"
+	"poker/internal/modules/stats"
 )
 
 type AppServer struct {
@@ -63,4 +64,5 @@ func (s *AppServer) RegisterRoutes() {
 
 	auth.RegisterRoutes(api, s.db, s.logger, s.temporal)
 	room.RegisterRoutes(api, s.db, s.logger, s.temporal)
+	stats.RegisterRoutes(api, s.db, s.logger, s.temporal)
 }
