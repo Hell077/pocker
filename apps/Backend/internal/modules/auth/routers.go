@@ -5,6 +5,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"os"
 	"poker/internal/middleware"
 	"poker/internal/modules/auth/handler"
 	"poker/internal/modules/auth/repo"
@@ -21,5 +22,5 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 	authGroup.Post("/register", authHandler.Register)
 	authGroup.Post("/login", authHandler.Login)
 
-	authGroup.Get("/me", middleware.JWTAuthMiddleware("secret"), authHandler.Me)
+	authGroup.Get("/me", middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")), authHandler.Me)
 }
