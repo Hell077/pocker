@@ -12,7 +12,7 @@ type StatsRepo struct {
 }
 
 type StatsRepoI interface {
-	Table() error
+	Table() ([]dto.EloTable, error)
 }
 
 func NewStatsRepo(db *gorm.DB, logger *zap.Logger) *StatsRepo {
@@ -32,6 +32,7 @@ func (r *StatsRepo) Table() ([]dto.EloTable, error) {
 			COALESCE(ratings.win_rate, 0) AS win_rate, 
 			COALESCE(ratings.elo, 0) AS elo`).
 		Joins("LEFT JOIN ratings ON ratings.user_id = accounts.id").
+		Order("elo DESC").
 		Scan(&eloTables).Error
 
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 )
 
 type StatsServiceI interface {
-	GetRatingTable() error
+	GetRatingTable() ([]dto.EloTable, error)
 }
 
 type StatsService struct {

@@ -4,13 +4,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
-	"poker/internal/modules/stats/repo"
 	"poker/internal/modules/stats/service"
 )
 
 type StatsHandler struct {
 	service  *service.StatsService
-	repo     *repo.StatsRepo
 	temporal client.Client
 	logger   *zap.Logger
 }
