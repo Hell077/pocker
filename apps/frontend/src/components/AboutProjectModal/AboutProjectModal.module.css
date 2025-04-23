@@ -1,0 +1,98 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    position: relative;
+    background: linear-gradient(145deg, #0d0d0d, #161616);
+    color: #fff;
+    padding: 2rem;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 16px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow:
+            0 0 12px rgba(255, 0, 204, 0.3),
+            0 0 20px rgba(0, 255, 255, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: #ff00cc transparent;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.modal::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #ff00cc, #00ffff);
+    z-index: -1;
+    filter: blur(6px);
+    pointer-events: none;
+}
+
+.modal::-webkit-scrollbar {
+    width: 8px;
+}
+.modal::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ff00cc, #00ffff);
+    border-radius: 8px;
+}
+.modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.closeButton {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    color: #ffffff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+}
+.closeButton:hover {
+    transform: scale(1.2);
+    color: #ff99ff;
+}
+
+h2 {
+    font-size: 1.6rem;
+    color: #ff66cc;
+    margin-bottom: 1rem;
+}
+
+p {
+    margin-bottom: 1rem;
+    color: #ccc;
+    line-height: 1.6;
+}
+
+.notice {
+    margin-top: 1.5rem;
+    font-style: italic;
+    color: #f0f;
+    background-color: rgba(255, 0, 204, 0.08);
+    padding: 0.5rem 1rem;
+    border-left: 3px solid #f0f;
+    border-radius: 8px;
+}

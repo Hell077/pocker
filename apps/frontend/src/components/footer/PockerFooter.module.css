@@ -90,6 +90,21 @@
   color: #ff2e63;
 }
 
+.aboutLink {
+  color: #00eaff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-weight: 500;
+}
+
+.aboutLink:hover {
+  color: #ff2e63;
+  text-decoration: underline;
+}
+
+
+
 @media (max-width: 768px) {
   .bottom {
     flex-direction: column;
