@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/poker_internal_modules_auth_dto.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginResponse"
+                            "$ref": "#/definitions/poker_internal_modules_auth_dto.LoginResponse"
                         }
                     },
                     "400": {
@@ -77,10 +77,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/poker_internal_modules_auth_dto.Me"
                         }
                     },
                     "401": {
@@ -161,7 +158,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RegisterRequest"
+                            "$ref": "#/definitions/poker_internal_modules_auth_dto.RegisterRequest"
                         }
                     }
                 ],
@@ -475,10 +472,74 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/stats/table": {
+            "get": {
+                "description": "Возвращает список пользователей с их ELO, винрейтом и количеством игр",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Получение таблицы рейтингов (Elo-таблица)",
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с рейтингом",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/dto.EloTable"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при получении данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "dto.LoginRequest": {
+        "dto.EloTable": {
+            "type": "object",
+            "properties": {
+                "elo": {
+                    "type": "integer"
+                },
+                "games": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "win_rate": {
+                    "type": "number"
+                }
+            }
+        },
+        "internal_modules_auth_handler.RefreshTokenRequest": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
+                    "type": "string",
+                    "example": "your_refresh_token_here"
+                }
+            }
+        },
+        "poker_internal_modules_auth_dto.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -491,7 +552,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginResponse": {
+        "poker_internal_modules_auth_dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -504,7 +565,21 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegisterRequest": {
+        "poker_internal_modules_auth_dto.Me": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "poker_internal_modules_auth_dto.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -518,15 +593,6 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "username"
-                }
-            }
-        },
-        "internal_modules_auth_handler.RefreshTokenRequest": {
-            "type": "object",
-            "properties": {
-                "refresh_token": {
-                    "type": "string",
-                    "example": "your_refresh_token_here"
                 }
             }
         },
