@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+	"poker/internal/modules/auth/dto"
 	"poker/internal/modules/auth/service"
 )
 
@@ -88,14 +89,20 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Summary Get current user
 // @Tags Auth
 // @Description Return info about authorized user
-// @Success 200 {object} map[string]string
+// @Success 200 dto.Me
 // @Failure 401 {object} map[string]string
 // @Router /auth/me [get]
 // @Security BearerAuth
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
-	return c.JSON(fiber.Map{
-		"user_id": userID,
+	acc, err := h.service.Me(userID)
+	if err != nil {
+		return c.Status(401).SendString("unauthorized")
+	}
+	return c.JSON(dto.Me{
+		Email:    acc.Email,
+		Id:       userID,
+		Username: acc.Username,
 	})
 }
 
