@@ -25,6 +25,11 @@ const Header: React.FC<Props> = ({ onLoginClick, onGoHome }) => {
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+    const handleLogout = async () => {
+        await logout();
+        navigate('/');
+    };
+
     React.useEffect(() => {
         const handler = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
@@ -35,47 +40,45 @@ const Header: React.FC<Props> = ({ onLoginClick, onGoHome }) => {
     }, []);
 
     return (
-        <header className={styles.header}>
-            <div className={styles.container}>
-                <div onClick={handleGoHome} className={styles.logo} style={{ cursor: 'pointer' }}>
-                    ♠ PokerKingdom
-                </div>
+      <header className={styles.header}>
+          <div className={styles.container}>
+              <div onClick={handleGoHome} className={styles.logo} style={{ cursor: 'pointer' }}>
+                  ♠ PokerKingdom
+              </div>
 
-                <nav className={styles.nav}>
-                    <a onClick={handleGoHome} className={styles.link} style={{ cursor: 'pointer' }}>
-                        Home
-                    </a>
-                    <a onClick={() => navigate("/tournaments")} className={styles.link} style={{ cursor: 'pointer' }}>
-                        Tournaments
-                    </a>
-                    <a onClick={() => navigate("/leaderboard")} className={styles.link} style={{ cursor: "pointer" }}>
-                        Leaderboard
-                    </a>
-                </nav>
+              <nav className={styles.nav}>
+                  <a onClick={handleGoHome} className={styles.link} style={{ cursor: 'pointer' }}>Home</a>
+                  <a onClick={() => navigate("/tournaments")} className={styles.link}>Tournaments</a>
+                  <a onClick={() => navigate("/leaderboard")} className={styles.link}>Leaderboard</a>
+              </nav>
 
-                <div className={styles.rightSide}>
-                    {!user ? (
-                        <button className={styles.loginBtn} onClick={onLoginClick}>Войти</button>
-                    ) : (
-                        <>
-                            <div className={styles.balance}>💰 {user.balance.toLocaleString()}</div>
-                            <div className={styles.dropdownWrapper}>
-                                <div onClick={toggleMenu} className={styles.user}>
-                                    <img src={user.avatarUrl} alt="Avatar" className={styles.avatar} />
-                                    <span className={styles.username}>{user.username}</span>
-                                    <ChevronDown size={16} />
-                                </div>
-                                <div className={`${styles.dropdown} ${isMenuOpen ? styles.show : ''}`}>
-                                    <a onClick={() => navigate("/profile")}><User size={16} /> Профиль</a>
-                                    <a onClick={() => navigate("/settings")}><Settings size={16} /> Настройки</a>
-                                    <a onClick={logout}><LogOut size={16} /> Выйти</a>
-                                </div>
+              <div className={styles.rightSide}>
+                  {!user ? (
+                    <button className={styles.loginBtn} onClick={onLoginClick}>Войти</button>
+                  ) : (
+                    <>
+                        <div className={styles.balance}>💰 {user.balance.toLocaleString()}</div>
+                        <div className={styles.dropdownWrapper}>
+                            <div onClick={toggleMenu} className={styles.user} role="button" tabIndex={0}>
+                                <img
+                                  src={user.avatarUrl || '/default-avatar.png'}
+                                  alt="Avatar"
+                                  className={styles.avatar}
+                                />
+                                <span className={styles.username}>{user.username}</span>
+                                <ChevronDown size={16} />
                             </div>
-                        </>
-                    )}
-                </div>
-            </div>
-        </header>
+                            <div className={`${styles.dropdown} ${isMenuOpen ? styles.show : ''}`}>
+                                <a onClick={() => navigate("/profile")}><User size={16} /> Профиль</a>
+                                <a onClick={() => navigate("/settings")}><Settings size={16} /> Настройки</a>
+                                <a onClick={handleLogout}><LogOut size={16} /> Выйти</a>
+                            </div>
+                        </div>
+                    </>
+                  )}
+              </div>
+          </div>
+      </header>
     );
 };
 

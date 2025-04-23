@@ -54,7 +54,7 @@ const Footer: React.FC<Props> = ({ onRulesClick, onGoHome }) => {
                       <a href="http://t.me/yabous" target="_blank" rel="noopener noreferrer">
                           <Send size={18} />
                       </a>
-                      <a href="https://www.youtube.com/watch?v=pWJOxvcp7xk&ab_channel=LiNaLi" target="_blank" rel="noopener noreferrer">
+                      <a href="https://www.youtube.com/watch?v=UvCSQirMvMw&ab_channel=%D0%A1%D0%A2%D0%95%D0%9D%D0%90%D0%A1%D0%9E%D0%91%D0%AB%D0%A2%D0%98%D0%99" target="_blank" rel="noopener noreferrer">
                           <Youtube size={18} />
                       </a>
                   </div>

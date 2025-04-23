@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useToastRequest } from '@hooks/useToastRequest';
 import { Eye, EyeOff } from 'lucide-react';
 import CodeInput from './CodeInput';
+import { useAuth } from '../../context/AuthContext';
 
 const ApiUrl = import.meta.env.VITE_BACKEND_API;
 
@@ -16,6 +17,8 @@ const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
     const [showPassword, setShowPassword] = useState(false);
     const { handleRequest } = useToastRequest();
     const modalRef = useRef<HTMLDivElement>(null);
+
+    const { fetchMe } = useAuth(); // 🆕 подключаем auth context
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -68,6 +71,8 @@ const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             const { access_token, refresh_token } = res.data;
             localStorage.setItem('accessToken', access_token);
             localStorage.setItem('refreshToken', refresh_token);
+
+            await fetchMe(); // 🆕 подтягиваем user
             closeWithAnimation();
         }
 
@@ -147,8 +152,8 @@ const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
                               required
                             />
                             <span className="password-toggle" onClick={() => setShowPassword(p => !p)}>
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </span>
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </span>
                         </div>
                         <button type="submit" className="auth-submit">Войти</button>
                     </form>
@@ -190,8 +195,8 @@ const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
                               required
                             />
                             <span className="password-toggle" onClick={() => setShowPassword(p => !p)}>
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </span>
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </span>
                         </div>
                         <button type="submit" className="auth-submit">Зарегистрироваться</button>
                     </form>
