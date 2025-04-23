@@ -9,8 +9,8 @@ type AuthRepo interface {
 	CreateAccount(account *database.Account) error
 	CreateBalance(balance *database.AccountBalance) error
 	GetAccountByEmail(email string) (*database.Account, error)
+	MeByID(id string) (database.Account, error)
 }
-
 type authRepo struct {
 	db *gorm.DB
 }
@@ -34,4 +34,13 @@ func (r *authRepo) GetAccountByEmail(email string) (*database.Account, error) {
 		return nil, err
 	}
 	return &acc, nil
+}
+
+func (r *authRepo) MeByID(id string) (database.Account, error) {
+	var account database.Account
+	err := r.db.First(&account, "id = ?", id).Error
+	if err != nil {
+		return account, err
+	}
+	return account, nil
 }

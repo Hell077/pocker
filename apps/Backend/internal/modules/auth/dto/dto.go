@@ -18,3 +18,9 @@ type LoginResponse struct {
 	AccessToken  string `json:"access_token" example:"access.jwt.token"`
 	RefreshToken string `json:"refresh_token" example:"refresh.jwt.token"`
 }
+
+type Me struct {
+	Id       string `json:"id,omitempty"`
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+}

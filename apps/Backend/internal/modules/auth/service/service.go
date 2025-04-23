@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 	"poker/internal/modules/auth/repo"
 	"poker/packages/database"
 	"time"
@@ -15,6 +16,7 @@ type AuthService interface {
 	Register(email, password, username string) error
 	Login(email, password string) (string, string, error) // access, refresh
 	RefreshToken(refresh string) (string, error)
+	Me(userID string) (database.Account, error)
 }
 
 type authService struct {
@@ -76,7 +78,7 @@ func generateJWT(userID string, duration time.Duration) (string, error) {
 		"exp": time.Now().Add(duration).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte("secret"))
+	return token.SignedString([]byte(os.Getenv("JWT_KEY")))
 }
 
 func generateUUID() string {
@@ -104,4 +106,12 @@ func (s *authService) RefreshToken(refresh string) (string, error) {
 
 	// создаём новый access token
 	return generateJWT(userID, 30*time.Minute)
+}
+
+func (s *authService) Me(userID string) (database.Account, error) {
+	acc, err := s.repo.MeByID(userID)
+	if err != nil {
+		return acc, err
+	}
+	return acc, nil
 }
