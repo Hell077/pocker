@@ -46,6 +46,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		h.logger.Error("registration failed", zap.Error(err))
 		return c.Status(500).SendString("registration failed")
 	}
+
 	return c.SendString("registered")
 }
 

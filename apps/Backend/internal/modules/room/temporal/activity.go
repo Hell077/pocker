@@ -4,11 +4,19 @@ import (
 	"context"
 	"go.temporal.io/sdk/workflow"
 	"log"
+	"poker/internal/modules/room/manager"
 	"time"
 )
 
-func SendMessageActivity(ctx context.Context, userID, message string) error {
-	log.Printf("📤 Sending to %s: %s", userID, message)
+func SendMessageActivity(ctx context.Context, roomID, userID, message string) error {
+	manager.Manager.SendToUser(roomID, userID, message)
+	log.Printf("📤 WS sent to %s (%s): %s", userID, roomID, message)
+	return nil
+}
+
+func SendCardToUserActivity(ctx context.Context, roomID, userID, message string) error {
+	manager.Manager.SendToUser(roomID, userID, message)
+	log.Printf("📤 WS to %s (%s): %s", userID, roomID, message)
 	return nil
 }
 

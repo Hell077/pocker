@@ -57,3 +57,13 @@ func (m *ConnectionManager) Broadcast(roomID string, message string) {
 		}
 	}
 }
+
+func (m *ConnectionManager) SendToUser(roomID, userID, message string) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if room, ok := m.rooms[roomID]; ok {
+		if conn, exists := room[userID]; exists && conn != nil {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte(message))
+		}
+	}
+}

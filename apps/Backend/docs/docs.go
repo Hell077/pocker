@@ -189,6 +189,11 @@ const docTemplate = `{
         },
         "/room/action": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Отправка действия игрока в Temporal воркфлоу",
                 "consumes": [
                     "application/json"
@@ -226,6 +231,11 @@ const docTemplate = `{
         },
         "/room/available-actions": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Возвращает список допустимых ходов на текущий момент",
                 "consumes": [
                     "application/json"
@@ -271,6 +281,11 @@ const docTemplate = `{
         },
         "/room/create-room": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Создаёт новую покерную комнату с заданными параметрами",
                 "consumes": [
                     "application/json"
@@ -318,8 +333,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/room/deal-cards": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отправляет сигнал в Temporal для раздачи карт",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Раздача карт",
+                "parameters": [
+                    {
+                        "description": "ID комнаты",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/poker_internal_modules_room_dto.StartGameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/room/start-game": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Меняет статус комнаты на playing",
                 "consumes": [
                     "application/json"
@@ -357,6 +419,11 @@ const docTemplate = `{
         },
         "/room/ws": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Устанавливает WebSocket-соединение с покерной комнатой. Требуется ` + "`" + `roomID` + "`" + ` и ` + "`" + `userID` + "`" + ` как query-параметры.",
                 "produces": [
                     "text/plain"
