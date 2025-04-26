@@ -89,7 +89,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Summary Get current user
 // @Tags Auth
 // @Description Return info about authorized user
-// @Success 200 dto.Me
+// @Success 200 {object} dto.Me
 // @Failure 401 {object} map[string]string
 // @Router /auth/me [get]
 // @Security BearerAuth

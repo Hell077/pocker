@@ -1,6 +1,23 @@
 basePath: /api
 definitions:
-  dto.LoginRequest:
+  dto.EloTable:
+    properties:
+      elo:
+        type: integer
+      games:
+        type: integer
+      username:
+        type: string
+      win_rate:
+        type: number
+    type: object
+  internal_modules_auth_handler.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: your_refresh_token_here
+        type: string
+    type: object
+  poker_internal_modules_auth_dto.LoginRequest:
     properties:
       email:
         example: user@example.com
@@ -9,7 +26,7 @@ definitions:
         example: strongpassword
         type: string
     type: object
-  dto.LoginResponse:
+  poker_internal_modules_auth_dto.LoginResponse:
     properties:
       access_token:
         example: access.jwt.token
@@ -18,7 +35,16 @@ definitions:
         example: refresh.jwt.token
         type: string
     type: object
-  dto.RegisterRequest:
+  poker_internal_modules_auth_dto.Me:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  poker_internal_modules_auth_dto.RegisterRequest:
     properties:
       email:
         example: user@example.com
@@ -28,12 +54,6 @@ definitions:
         type: string
       username:
         example: username
-        type: string
-    type: object
-  internal_modules_auth_handler.RefreshTokenRequest:
-    properties:
-      refresh_token:
-        example: your_refresh_token_here
         type: string
     type: object
   poker_internal_modules_room_dto.CreateRoomRequest:
@@ -88,14 +108,14 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/dto.LoginRequest'
+          $ref: '#/definitions/poker_internal_modules_auth_dto.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.LoginResponse'
+            $ref: '#/definitions/poker_internal_modules_auth_dto.LoginResponse'
         "400":
           description: invalid input
           schema:
@@ -114,9 +134,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/poker_internal_modules_auth_dto.Me'
         "401":
           description: Unauthorized
           schema:
@@ -169,7 +187,7 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/dto.RegisterRequest'
+          $ref: '#/definitions/poker_internal_modules_auth_dto.RegisterRequest'
       produces:
       - text/plain
       responses:
@@ -372,6 +390,32 @@ paths:
       summary: Подключение к комнате по WebSocket
       tags:
       - Room
+  /stats/table:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список пользователей с их ELO, винрейтом и количеством
+        игр
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с рейтингом
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/dto.EloTable'
+              type: array
+            type: object
+        "500":
+          description: Ошибка при получении данных
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получение таблицы рейтингов (Elo-таблица)
+      tags:
+      - Stats
 securityDefinitions:
   BearerAuth:
     in: header
