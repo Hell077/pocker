@@ -1,0 +1,39 @@
+.tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.nav {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.nav button {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    color: #ccc;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.nav button:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav .active {
+    color: #ff2e63;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.panel {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 12px;
+}

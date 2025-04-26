@@ -9,9 +9,10 @@ import s from "./MainPage.module.css";
 type Props = {
     openAuthModal: () => void;
     openRulesModal: () => void;
+    goHome: () => void; // ✅ добавлено!
 };
 
-const MainPage: React.FC<Props> = ({ openAuthModal, openRulesModal }) => {
+const MainPage: React.FC<Props> = ({ openAuthModal, openRulesModal, goHome }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -25,11 +26,11 @@ const MainPage: React.FC<Props> = ({ openAuthModal, openRulesModal }) => {
     }
 
     return (
-        <div className={s.app}>
-            <Header onLoginClick={openAuthModal} onGoHome={() => navigate("/")} />
-            <main className={s.main}>{content}</main>
-            <Footer onRulesClick={openRulesModal} onGoHome={() => navigate("/")} />
-        </div>
+      <div className={s.app}>
+          <Header onLoginClick={openAuthModal} onGoHome={goHome} />
+          <main className={s.main}>{content}</main>
+          <Footer onRulesClick={openRulesModal} onGoHome={goHome} />
+      </div>
     );
 };
 
