@@ -13,7 +13,7 @@ const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
     const [formData, setFormData] = useState({ email: '', password: '', nickname: '' });
     const [isClosing, setIsClosing] = useState(false);
     const [errorShake, setErrorShake] = useState(false);
-    const [fadeTransition, setFadeTransition] = useState(false);
+    const [fadeTransition] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const { handleRequest } = useToastRequest();
     const modalRef = useRef<HTMLDivElement>(null);
