@@ -1,3 +1,4 @@
+/* Общие стили для главной страницы */
 .home-page {
     position: relative;
     width: 100%;
@@ -17,6 +18,7 @@
     z-index: 0;
 }
 
+/* Контейнер для карт */
 .cardsContainer {
     position: absolute;
     width: 100%;
@@ -113,6 +115,7 @@
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.4));
 }
 
+/* Overlay для кнопки и заголовка */
 .overlay {
     position: relative;
     z-index: 2;
@@ -160,4 +163,78 @@
 @keyframes pulse {
     0%, 100% { box-shadow: 0 0 12px rgba(252, 238, 181, 0.3); }
     50%      { box-shadow: 0 0 24px rgba(252, 238, 181, 0.6); }
+}
+
+/* Блок с таймером и кнопкой перехода */
+.wheelBlock {
+    margin-top: 30px;
+}
+
+.spin-button-home {
+    font-size: 1.3rem;
+    margin-top: 20px;
+    background-color: #00ffff;
+    color: #1a1a1a;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px #00ffff;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.spin-button-home:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff;
+}
+
+/* При блокировке таймера */
+.timer-info {
+    font-size: 1.2rem;
+    margin-top: 20px;
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+    text-align: center;
+}
+
+/* Маленький блок в левом нижнем углу */
+.timer-block {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 12px 20px;
+    border-radius: 12px;
+    color: #00FFFF;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 10px #00FFFF;
+    transition: transform 0.3s ease;
+}
+
+.timer-block:hover {
+    transform: scale(1.1);
+}
+
+/* Кнопка для перехода к колесу */
+.spin-button-small {
+    font-size: 1.5rem;
+    background-color: #00FFFF;
+    color: #1d1d1d;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px #00FFFF;
+}
+
+/* При блокировке таймера */
+.timer-message {
+    font-size: 1.2rem;
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+    text-align: center;
 }

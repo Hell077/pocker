@@ -55,7 +55,6 @@ const CodeInput: React.FC<Props> = ({ length = 6, onComplete }) => {
           className={styles.codeInput}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
-          ref={(el) => (inputsRef.current[i] = el)}
           inputMode="numeric"
           autoComplete="one-time-code"
         />

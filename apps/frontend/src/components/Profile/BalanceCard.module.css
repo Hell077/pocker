@@ -1,0 +1,25 @@
+.chipsCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chipsTitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chipsValue {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #08d9d6;
+}
+
+.icon {
+    fill: #ff2e63;
+}

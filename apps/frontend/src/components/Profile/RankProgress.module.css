@@ -1,0 +1,23 @@
+.rankProgress {
+    margin-top: 1rem;
+}
+
+.rankInfo {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+.progressBar {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    height: 0.25rem;
+    border-radius: 0.125rem;
+    margin-top: 0.5rem;
+}
+
+.progress {
+    background-color: #08d9d6;
+    height: 100%;
+    border-radius: 0.125rem;
+}
