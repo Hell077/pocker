@@ -2,6 +2,7 @@ package database
 
 import (
 	"gorm.io/gorm"
+	"time"
 )
 
 // ✅ Пользователь
@@ -47,7 +48,6 @@ type GamePlayer struct {
 	IsAllIn    bool
 }
 
-// ♠️ Игровая сессия (одна раздача)
 type GameSession struct {
 	ID        string `gorm:"primaryKey"`
 	RoomID    string `gorm:"not null"`
@@ -68,44 +68,6 @@ type GameMove struct {
 	CreatedAt   int64
 }
 
-// 📜 Логи игры
-type GameLog struct {
-	ID        string `gorm:"primaryKey"`
-	GameID    string `gorm:"not null"`
-	Message   string
-	Timestamp int64
-}
-
-// 🏆 Турнир
-type Tournament struct {
-	ID         string `gorm:"primaryKey"`
-	Name       string
-	Type       string // Sit&Go / MTT
-	Status     string // waiting / started / finished
-	BuyIn      int64
-	PrizePool  int64
-	MaxPlayers int
-	CreatedAt  int64
-}
-
-// 👥 Участники турнира
-type TournamentPlayer struct {
-	ID           string  `gorm:"primaryKey"`
-	TournamentID string  `gorm:"not null"`
-	UserID       string  `gorm:"not null"`
-	User         Account `gorm:"foreignKey:UserID;references:ID"`
-	IsEliminated bool
-	Place        int
-}
-
-// 🎬 Реплей раздачи
-type Replay struct {
-	ID        string `gorm:"primaryKey"`
-	GameID    string `gorm:"not null"`
-	Data      string // JSON-данные всей раздачи
-	CreatedAt int64
-}
-
 // 📊 Рейтинг игрока
 type Rating struct {
 	ID      string  `gorm:"primaryKey"`
@@ -117,13 +79,24 @@ type Rating struct {
 	WinRate float64
 }
 
-// 🔔 Уведомления
-type Notification struct {
-	ID        string  `gorm:"primaryKey"`
-	UserID    string  `gorm:"not null"`
-	User      Account `gorm:"foreignKey:UserID;references:ID"`
-	Title     string
-	Message   string
-	IsRead    bool
-	CreatedAt int64
+type Reward struct {
+	ID         string    `gorm:"primaryKey"`
+	UserID     string    `gorm:"column:user_id"`
+	Account    Account   `gorm:"foreignKey:UserID;references:ID"`
+	ClaimedAt  time.Time `gorm:"column:claimed_at;type:timestamp"`
+	NextReward time.Time `gorm:"column:next;type:timestamp"`
+}
+
+type RewardStatistic struct {
+	ID           string `gorm:"primaryKey"`
+	UserID       string `gorm:"column:user_id"`
+	Reward       string `gorm:"column:reward"`
+	Counts       int64  `gorm:"column:counts"`
+	ClaimedCount int64
+}
+
+type CurrentDayReward struct {
+	ID     string    `gorm:"primaryKey"`
+	Date   time.Time `gorm:"not null"`
+	Reward [8]int    `gorm:"not null"`
 }
