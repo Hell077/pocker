@@ -26,6 +26,8 @@ func loadModels(sb *strings.Builder) {
 		database.Rating{},
 		database.Reward{},
 		database.RewardStatistic{},
+		database.CurrentDayReward{},
+		database.CurrentDayRewardItem{},
 	}
 	stmts, err := gormschema.New("postgres").Load(models...)
 	if err != nil {

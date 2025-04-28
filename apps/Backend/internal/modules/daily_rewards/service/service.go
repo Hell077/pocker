@@ -30,10 +30,10 @@ func (h *DailyRewardService) GetTime(id string) (database.Reward, error) {
 	return h.repo.GetTime(id)
 }
 
-func (h *DailyRewardService) GetReward(reward dto.DailyReward) (string, error) {
-
+func (h *DailyRewardService) GetReward(reward dto.DailyReward, userid string) (string, error) {
+	return "", nil
 }
 
 func (h *DailyRewardService) GetRewardStatistic(c *fiber.Ctx) error {
-
+	return c.JSON(fiber.Map{})
 }

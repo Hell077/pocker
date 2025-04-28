@@ -4,5 +4,5 @@ import "time"
 
 type DailyReward struct {
 	Date   time.Time
-	Reward [8]int64
+	Reward [20]int64
 }
