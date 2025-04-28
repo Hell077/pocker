@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "prepare": "husky install",
+    "init": "npx husky-init && npm install"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ]
+  }
+}
