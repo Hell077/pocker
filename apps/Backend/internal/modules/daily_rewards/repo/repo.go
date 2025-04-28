@@ -22,10 +22,10 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 }
 
 func (d DailyRewardRepo) GetDailyReward() (dto.DailyReward, error) {
-	var rewards [8]int64
+	var rewards [20]int64
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 20; i++ {
 		rewards[i] = int64(utils.GenerateRandomMultipleOfFifty())
 	}
 

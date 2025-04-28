@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+	"poker/internal/modules/daily_rewards/dto"
 	"poker/internal/modules/daily_rewards/service"
 )
 
@@ -33,4 +34,10 @@ func (h *DailyReward) GetTime(c *fiber.Ctx) error {
 		return c.JSON(err)
 	}
 	return c.JSON(time)
+}
+
+func (h *DailyReward) GetReward(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+	c.Params(dto.DailyReward{})
+	h.service.GetReward()
 }

@@ -60,7 +60,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	leaveChan := workflow.GetSignalChannel(ctx, "leave-room")
 	moveChan := workflow.GetSignalChannel(ctx, "player-move")
 
-	tick := time.Second * 60
+	tick := time.Minute * 2
 
 	_ = workflow.SetQueryHandler(ctx, "available-actions", func(userID string) ([]string, error) {
 		if _, ok := state.Players[userID]; !ok {
@@ -113,7 +113,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			var s DealCardsSignal
 			c.Receive(ctx, &s)
 
-			// 🕐 обязательно!
 			ao := workflow.ActivityOptions{
 				StartToCloseTimeout: 5 * time.Second,
 			}
