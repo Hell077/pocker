@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './MainContent.module.css';
+
+type Props = {
+    onPlay: () => void;
+};
 
 const cardNames = [
     'AH', '2H', '3H', '4H', '5H', '6H', '7H', '8H', '9H', '10H', 'JH', 'QH', 'KH',
@@ -12,10 +17,22 @@ const getRandomCard = () => {
     return `/cards/${cardNames[Math.floor(Math.random() * cardNames.length)]}.png`;
 };
 
-const MainContent: React.FC = () => {
+function formatTime(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+}
+
+const MainContent: React.FC<Props> = ({ onPlay }) => {
+    const navigate = useNavigate();
+
     const [cards, setCards] = useState<
         { id: number; front: string; left: string; rotate: string; duration: string }[]
     >([]);
+    const [nextSpinTime, setNextSpinTime] = useState<number | null>(null);
+    const [timeLeft, setTimeLeft] = useState<string>("");
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -27,10 +44,10 @@ const MainContent: React.FC = () => {
                     front: getRandomCard(),
                     left: `${Math.random() * 90}%`,
                     rotate: `
-            rotateX(${Math.random() * 20 - 10}deg)
-            rotateY(${Math.random() * 20 - 10}deg)
-            rotateZ(${Math.random() * 30 - 15}deg)
-          `,
+                        rotateX(${Math.random() * 20 - 10}deg)
+                        rotateY(${Math.random() * 20 - 10}deg)
+                        rotateZ(${Math.random() * 30 - 15}deg)
+                    `,
                     duration: `${8 + Math.random() * 4}s`
                 };
 
@@ -40,6 +57,33 @@ const MainContent: React.FC = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const storedNextSpin = localStorage.getItem('nextSpinTime');
+        if (storedNextSpin) {
+            setNextSpinTime(parseInt(storedNextSpin));
+        }
+
+        const timer = setInterval(() => {
+            if (nextSpinTime) {
+                const diff = nextSpinTime - Date.now();
+                if (diff > 0) {
+                    setTimeLeft(formatTime(diff));
+                } else {
+                    setTimeLeft('');
+                    setNextSpinTime(null);
+                }
+            }
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [nextSpinTime]);
+
+    const handleWheelClick = () => {
+        navigate('/fortune-wheel');
+    };
+
+    const canSpin = !nextSpinTime || nextSpinTime < Date.now();
 
     return (
         <div className={styles["home-page"]}>
@@ -71,7 +115,34 @@ const MainContent: React.FC = () => {
 
             <div className={styles.overlay}>
                 <h1 className={styles.title}>Welcome to Poker</h1>
-                <button className={styles["play-button"]}>PLAY</button>
+                <button className={styles["play-button"]} onClick={onPlay}>PLAY</button>
+
+                {/* Блок с таймером и кнопкой перехода */}
+                <div className={styles.wheelBlock}>
+                    {canSpin ? (
+                        <button className={styles["spin-button-home"]} onClick={handleWheelClick}>
+                            🎰 SPIN NOW
+                        </button>
+                    ) : (
+                        <div className={styles["timer-info"]}>
+                            🎯 Приходите завтра!<br />
+                            ⏳ Осталось: {timeLeft}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Маленький блок в левом нижнем углу */}
+            <div className={styles["timer-block"]}>
+                {canSpin ? (
+                    <div className={styles["spin-button-small"]} onClick={handleWheelClick}>
+                        🎰 SPIN NOW
+                    </div>
+                ) : (
+                    <div className={styles["timer-message"]}>
+                        ⏳ Осталось: {timeLeft}
+                    </div>
+                )}
             </div>
         </div>
     );
