@@ -25,4 +25,21 @@ go.work.sum
 *.env
 .idea
 
-*node_modules
+# node_modules и lock-файлы от npm/yarn
+node_modules/
+package-lock.json
+yarn.lock
+**/node_modules/.pnpm
+
+# pnpm-lock.yaml — НЕ игнорировать!
+# !pnpm-lock.yaml
+
+# VSCode / JetBrains / система
+.vscode/
+.idea/
+.DS_Store
+
+# build artifacts
+dist/
+build/
+*.log
