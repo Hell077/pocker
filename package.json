@@ -1,15 +1,17 @@
 {
+  "name": "pocker-monorepo",
+  "private": true,
   "scripts": {
-    "prepare": "husky install",
-    "init": "npx husky-init && npm install"
+    "prepare": "husky install"
   },
   "devDependencies": {
-    "husky": "^8.0.0"
+    "eslint": "^9.25.1",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0"
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "git add"
+      "pnpm -r --filter frontendv2 exec eslint --fix"
     ]
   }
 }
