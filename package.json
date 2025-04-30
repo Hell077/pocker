@@ -14,8 +14,7 @@
     "husky": "^8.0.0",
     "lint-staged": "^15.0.0",
     "typescript-eslint": "^8.31.1"
-  },
-  "lint-staged": {
+  },"lint-staged": {
   "apps/frontendv2/src/**/*.{js,jsx,ts,tsx}": "eslint --fix"
 }
 
