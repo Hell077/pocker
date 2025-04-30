@@ -1,25 +1,37 @@
-module.exports = {
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 2020,
-    sourceType: 'module',
-    ecmaFeatures: { jsx: true },
-  },
-  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'jsx-a11y'],
-  extends: [
-    'eslint:recommended',
-    'plugin:react/recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:jsx-a11y/recommended',
-    'prettier',
-  ],
-  settings: {
-    react: {
-      version: 'detect',
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
+import prettier from 'eslint-config-prettier'
+
+export default [
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+    },
+    rules: {
+      'react/prop-types': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
     },
   },
-  rules: {
-    '@typescript-eslint/no-unused-vars': ['warn'],
-    'react/prop-types': 'off',
-  },
-};
+  prettier,
+]

@@ -11,8 +11,6 @@
     "lint-staged": "^15.0.0"
   },
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
-      "pnpm -r --filter frontendv2 exec eslint --fix"
-    ]
+    "**/*.{js,jsx,ts,tsx}": "npx eslint src --ext .ts,.tsx --fix"
   }
 }
