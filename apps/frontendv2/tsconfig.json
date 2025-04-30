@@ -24,13 +24,20 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "shared/*": ["src/shared/*"],
-      "entities/*": ["src/entities/*"],
-      "features/*": ["src/features/*"],
-      "widgets/*": ["src/widgets/*"],
-      "pages/*": ["src/pages/*"],
-      "processes/*": ["src/processes/*"],
-      "app/*": ["src/app/*"]
+      "public/*": ["public/*"],
+      "@components/*": ["src/components/*"],
+      "@widgets/*": ["src/widgets/*"],
+      "@pages/*": ["src/pages/*"],
+      "@root/*": ["src/root/*"],
+      "@shared/*": ["src/shared/*"],
+      "@features/*": ["src/features/*"],
+      "@entities/*": ["src/entities/*"],
+      "@app/*": ["src/app/*"],
+      "@assets/*": ["src/assets/*"],
+      "@utils/*": ["src/shared/utils/*"],
+      "@hooks/*": ["src/shared/hooks/*"],
+      "@store/*": ["src/shared/store/*"],
+      "@config/*": ["src/shared/config/*"]
     }
   },
   "include": [
