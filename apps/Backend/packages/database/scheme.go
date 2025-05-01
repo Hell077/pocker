@@ -96,12 +96,13 @@ type RewardStatistic struct {
 }
 
 type CurrentDayReward struct {
-	ID    string                 `gorm:"primaryKey"`
+	ID    string                 `gorm:"primaryKey;column:id"`
 	Date  time.Time              `gorm:"not null"`
 	Items []CurrentDayRewardItem `gorm:"foreignKey:CurrentDayRewardID;constraint:OnDelete:CASCADE"`
 }
+
 type CurrentDayRewardItem struct {
-	ID                 string `gorm:"primaryKey"`
-	CurrentDayRewardID string `gorm:"not null;index"` // индексируем для быстрого поиска
+	ID                 string `gorm:"primaryKey;column:id"`
+	CurrentDayRewardID string `gorm:"not null;index"`
 	Reward             int    `gorm:"not null"`
 }
