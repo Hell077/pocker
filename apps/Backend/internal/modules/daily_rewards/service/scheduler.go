@@ -11,7 +11,7 @@ func DailyRewardScheduler(c client.Client) error {
 	workflowID := "daily-reward-workflow"
 
 	spec := client.ScheduleSpec{
-		CronExpressions: []string{"0 0 * * *"},
+		CronExpressions: []string{"0 23 * * *"},
 	}
 
 	action := &client.ScheduleWorkflowAction{

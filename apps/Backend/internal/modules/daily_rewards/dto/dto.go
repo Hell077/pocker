@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"poker/packages/database"
+	"time"
+)
 
 type DailyReward struct {
 	Date   time.Time
@@ -14,4 +17,13 @@ type Times struct {
 	Day    int
 	Month  time.Month
 	Year   int
+}
+
+type GetTime struct {
+	CooldownSeconds int64 `json:"cooldown_seconds"`
+}
+
+type RewardResponse struct {
+	Reward  database.Reward `json:"reward"`
+	Claimed bool            `json:"claimed"`
 }

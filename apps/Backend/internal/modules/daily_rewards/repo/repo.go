@@ -2,18 +2,22 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"poker/internal/modules/daily_rewards/dto"
 	"poker/internal/modules/daily_rewards/utils"
 	"poker/packages/database"
 	"time"
 )
 
 type DailyRewardRepoI interface {
-	GetDailyReward() (dto.DailyReward, error)
+	GetDailyReward() (database.CurrentDayReward, error)
 	GetTime(id string) (database.Reward, error)
+	GetUserTodayReward(userId string) (database.Reward, error)
+	GetAllRewardStatistics(userId string) ([]database.RewardStatistic, error)
+	SaveReward(reward database.Reward) error
 	CreateReward() error
+	SaveRewardWithBalanceAndStatistic(reward database.Reward) error
 }
 type DailyRewardRepo struct {
 	db *gorm.DB
@@ -23,8 +27,20 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 	return DailyRewardRepo{db: db}
 }
 
-func (r DailyRewardRepo) GetDailyReward() (dto.DailyReward, error) {
-	return dto.DailyReward{}, nil
+func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
+	var reward database.CurrentDayReward
+	today := time.Now().Truncate(24 * time.Hour)
+
+	err := r.db.
+		Preload("Items").
+		Where("date = ?", today).
+		First(&reward).
+		Error
+
+	if err != nil {
+		return database.CurrentDayReward{}, err
+	}
+	return reward, nil
 }
 
 func (r DailyRewardRepo) CreateReward() error {
@@ -32,9 +48,6 @@ func (r DailyRewardRepo) CreateReward() error {
 
 	var existing database.CurrentDayReward
 	err := r.db.Where("date = ?", today).First(&existing).Error
-	if err == nil {
-		return nil
-	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
@@ -63,8 +76,70 @@ func (r DailyRewardRepo) CreateReward() error {
 	return nil
 }
 
-func (r DailyRewardRepo) GetTime(id string) (database.Reward, error) {
+func (r DailyRewardRepo) GetTime(userID string) (database.Reward, error) {
 	var reward database.Reward
-	err := r.db.First(&reward, "id = ?", id).Error
+	today := time.Now().Truncate(24 * time.Hour)
+
+	err := r.db.
+		Where("user_id = ? AND reward_date = ?", userID, today).
+		First(&reward).Error
+
 	return reward, err
+}
+
+func (r DailyRewardRepo) GetUserTodayReward(userId string) (database.Reward, error) {
+	var reward database.Reward
+	today := time.Now().Truncate(24 * time.Hour)
+
+	err := r.db.
+		Where("user_id = ? AND reward_date = ?", userId, today).
+		First(&reward).Error
+
+	return reward, err
+}
+
+func (r DailyRewardRepo) GetAllRewardStatistics(userId string) ([]database.RewardStatistic, error) {
+	var stats []database.RewardStatistic
+
+	err := r.db.
+		Preload("Reward").
+		Where("user_id = ?", userId).
+		Find(&stats).Error
+
+	return stats, err
+}
+
+func (r DailyRewardRepo) SaveReward(reward database.Reward) error {
+	return r.db.Create(&reward).Error
+}
+
+func (r DailyRewardRepo) SaveRewardWithBalanceAndStatistic(reward database.Reward) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&reward).Error; err != nil {
+			return err
+		}
+
+		res := tx.Exec(`
+			UPDATE account_balances
+			SET current_balance = (CAST(current_balance AS BIGINT) + ?)::TEXT
+			WHERE user_id = ?`, reward.Amount, reward.UserID)
+
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return fmt.Errorf("account balance not found for user %s", reward.UserID)
+		}
+
+		stat := database.RewardStatistic{
+			ID:       uuid.New().String(),
+			UserID:   reward.UserID,
+			RewardID: reward.ID,
+		}
+		if err := tx.Create(&stat).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
