@@ -35,3 +35,7 @@ func GetDate() (dto.Times, dto.Times) {
 	}
 	return cur, tom
 }
+
+func PtrTime(t time.Time) *time.Time {
+	return &t
+}

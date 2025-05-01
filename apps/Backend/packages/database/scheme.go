@@ -80,19 +80,19 @@ type Rating struct {
 }
 
 type Reward struct {
-	ID         string    `gorm:"primaryKey"`
-	UserID     string    `gorm:"column:user_id"`
-	Account    Account   `gorm:"foreignKey:UserID;references:ID"`
-	ClaimedAt  time.Time `gorm:"column:claimed_at;type:timestamp"`
-	NextReward time.Time `gorm:"column:next;type:timestamp"`
+	ID         string     `gorm:"primaryKey"`
+	UserID     string     `gorm:"not null;uniqueIndex:uniq_user_reward_date"`
+	User       Account    `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	RewardDate time.Time  `gorm:"not null;uniqueIndex:uniq_user_reward_date"`
+	Amount     int        `gorm:"not null"`
+	ClaimedAt  *time.Time `gorm:"default:null"`
 }
 
 type RewardStatistic struct {
-	ID           string `gorm:"primaryKey"`
-	UserID       string `gorm:"column:user_id"`
-	Reward       string `gorm:"column:reward"`
-	Counts       int64  `gorm:"column:counts"`
-	ClaimedCount int64
+	ID       string `gorm:"primaryKey"`
+	UserID   string `gorm:"column:user_id;not null;index"`
+	RewardID string `gorm:"column:reward_id;not null"` // Ссылается на конкретную награду
+	Reward   Reward `gorm:"foreignKey:RewardID;references:ID"`
 }
 
 type CurrentDayReward struct {
