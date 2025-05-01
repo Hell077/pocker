@@ -1,12 +1,17 @@
 package room_temporal
 
 import (
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
 
 const taskQueue = "room-task-queue"
 
 type RoomModule struct{}
+
+func (m *RoomModule) Init(client client.Client) error {
+	return nil
+}
 
 func (m *RoomModule) TaskQueue() string {
 	return taskQueue
