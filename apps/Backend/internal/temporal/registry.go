@@ -10,6 +10,10 @@ import (
 
 func StartAllWorkers(c client.Client, modules []TemporalModule) {
 	for _, mod := range modules {
+		if err := mod.Init(c); err != nil {
+			log.Printf("[!] Init failed for module %s: %v", mod.TaskQueue(), err)
+		}
+
 		taskQueue := mod.TaskQueue()
 		w := worker.New(c, taskQueue, worker.Options{})
 

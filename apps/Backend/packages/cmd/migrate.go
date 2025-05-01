@@ -23,12 +23,11 @@ func loadModels(sb *strings.Builder) {
 		database.GamePlayer{},
 		database.GameSession{},
 		database.GameMove{},
-		database.GameLog{},
-		database.Tournament{},
-		database.TournamentPlayer{},
-		database.Replay{},
 		database.Rating{},
-		database.Notification{},
+		database.Reward{},
+		database.RewardStatistic{},
+		database.CurrentDayReward{},
+		database.CurrentDayRewardItem{},
 	}
 	stmts, err := gormschema.New("postgres").Load(models...)
 	if err != nil {
