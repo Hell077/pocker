@@ -8,9 +8,10 @@ import (
 	"poker/packages/database"
 )
 
-type AuthService interface {
+type DailyRewardServiceI interface {
 	GetWheelRewardList() (dto.DailyReward, error)
 	GetTime(id string) (database.Reward, error)
+	GetReward(reward dto.DailyReward, userid string) (string, error)
 }
 
 type DailyRewardService struct {
@@ -22,18 +23,19 @@ func NewRewardService(r repo.DailyRewardRepo, logger *zap.Logger) DailyRewardSer
 	return DailyRewardService{repo: r, logger: logger}
 }
 
-func (h *DailyRewardService) GetWheelRewardList() (dto.DailyReward, error) {
-	return h.repo.GetDailyReward()
+func (s *DailyRewardService) GetWheelRewardList() (dto.DailyReward, error) {
+	return s.repo.GetDailyReward()
 }
 
-func (h *DailyRewardService) GetTime(id string) (database.Reward, error) {
-	return h.repo.GetTime(id)
+func (s *DailyRewardService) GetTime(id string) (database.Reward, error) {
+	return s.repo.GetTime(id)
 }
 
-func (h *DailyRewardService) GetReward(reward dto.DailyReward, userid string) (string, error) {
+func (s *DailyRewardService) GetReward(reward dto.DailyReward, userid string) (string, error) {
+	s.repo.GetDailyReward()
 	return "", nil
 }
 
-func (h *DailyRewardService) GetRewardStatistic(c *fiber.Ctx) error {
+func (s *DailyRewardService) GetRewardStatistic(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{})
 }

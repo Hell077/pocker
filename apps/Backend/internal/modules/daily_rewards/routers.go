@@ -20,5 +20,6 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 	dailyRewardGroup := router.Group("/rewards")
 	dailyRewardGroup.Use(middleware.JWTAuthMiddleware(os.Getenv("JWT_SECRET")))
 	dailyRewardGroup.Get("/get", dailyRewardHandler.GetReward)
+	dailyRewardGroup.Get("/wheel/rewards", dailyRewardHandler.GetWheelRewards)
 	dailyRewardGroup.Get("/time", dailyRewardHandler.GetTime)
 }
