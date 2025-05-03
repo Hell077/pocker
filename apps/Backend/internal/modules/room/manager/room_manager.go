@@ -67,3 +67,15 @@ func (m *ConnectionManager) SendToUser(roomID, userID, message string) {
 		}
 	}
 }
+
+func (m *ConnectionManager) Get(userID string) *websocket.Conn {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, users := range m.rooms {
+		if conn, ok := users[userID]; ok {
+			return conn
+		}
+	}
+	return nil
+}
