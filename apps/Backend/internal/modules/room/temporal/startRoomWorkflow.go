@@ -2,9 +2,12 @@ package room_temporal
 
 import (
 	"fmt"
+	"github.com/gofiber/websocket/v2"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
+	"poker/internal/modules/room/manager"
+	"strings"
 	"time"
 )
 
@@ -22,7 +25,8 @@ type LeaveRoomSignal struct {
 
 type PlayerMoveSignal struct {
 	UserID string
-	Move   string
+	Action string
+	Args   []string
 }
 
 type RoomState struct {
@@ -39,8 +43,12 @@ type RoomState struct {
 	Pot           int64
 	MoveLog       []string
 	GameStarted   bool
-	PlayerCards   map[string][]string // 🃏 личные карты игрока
-	Deck          []string            // 🎴 колода
+	PlayerCards   map[string][]string
+	Deck          []string
+	BoardCards    []string
+	RoundStage    string
+	HasActed      map[string]bool
+	PlayerBets    map[string]int64 // сколько поставил игрок в текущем раунде
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
@@ -87,6 +95,10 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			state.PlayerChips = make(map[string]int64)
 			state.PlayerFolded = make(map[string]bool)
 			state.PlayerAllIn = make(map[string]bool)
+			state.GameStarted = true
+			state.RoundStage = "preflop"
+			state.HasActed = make(map[string]bool)
+			state.PlayerBets = make(map[string]int64)
 
 			for id := range state.Players {
 				state.PlayerOrder = append(state.PlayerOrder, id)
@@ -173,28 +185,62 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			var s PlayerMoveSignal
 			c.Receive(ctx, &s)
 
-			err := ValidatePlayerAction(s.Move, state, s.UserID)
+			err := ValidatePlayerAction(s.Action, state, s.UserID, s.Args)
 			if err != nil {
 				logger.Warn("🚫 Invalid player action",
 					"userID", s.UserID,
-					"move", s.Move,
+					"action", s.Action,
+					"args", s.Args,
 					"error", err.Error(),
 				)
-				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("❌ Invalid action by %s: %s", s.UserID, err.Error()))
+				sendToPlayer(s.UserID, fmt.Sprintf("❌ Invalid action: %s", err.Error()))
 				return
 			}
 
-			entry := s.UserID + ": " + s.Move
+			entry := s.UserID + ": " + s.Action + " " + strings.Join(s.Args, " ")
 			state.MoveLog = append(state.MoveLog, entry)
-			logger.Info("✅ Player move", "userID", s.UserID, "move", s.Move)
+
+			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action, "args", s.Args)
 			sendToAllPlayers(ctx, state.Players, entry)
 
+			state.HasActed[s.UserID] = true
+
+			handler := ActionRegistry[s.Action]
+			handler.Execute(state, s.UserID, s.Args)
+
 			NextTurn(state)
-			if state.CurrentPlayer != "" {
+
+			if IsBettingRoundOver(state) {
+				logger.Info("✅ All players acted. Advancing stage...")
+				state.PlayerBets = make(map[string]int64)
+				state.CurrentBet = 0
+				state.LastRaise = 0
+				NextStage(state)
+
+				if state.RoundStage == "ended" || state.RoundStage == "showdown" {
+					sendToAllPlayers(ctx, state.Players, "🏁 Showdown begins...")
+
+					winnerID, combo := EvaluateWinner(state)
+					if winnerID != "" {
+						sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🥇 Winner: %s | %s", winnerID, combo))
+						state.PlayerChips[winnerID] += state.Pot
+						sendToAllPlayers(ctx, state.Players, fmt.Sprintf("💰 %s wins the pot: %d", winnerID, state.Pot))
+						state.Pot = 0
+					} else {
+						sendToAllPlayers(ctx, state.Players, "😶 No winner")
+					}
+
+					state.RoundStage = "ended"
+				} else {
+					DealBoardCards(state)
+					sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🃏 Stage: %s | Board: %v", state.RoundStage, state.BoardCards))
+					state.CurrentPlayer = state.PlayerOrder[0]
+					state.HasActed = make(map[string]bool)
+					sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 New round begins. First player: %s", state.CurrentPlayer))
+				}
+			} else if state.CurrentPlayer != "" {
 				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 Now playing: %s", state.CurrentPlayer))
 				logger.Info("🔁 Turn passed", zap.String("nextPlayer", state.CurrentPlayer))
-			} else {
-				logger.Info("🏁 Round ended — no next player found")
 			}
 		})
 
@@ -244,7 +290,6 @@ func NextTurn(state *RoomState) {
 		}
 	}
 
-	// ищем следующего, кто не сдался и не all-in
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
@@ -279,4 +324,76 @@ func GenerateShuffledDeck(ctx workflow.Context) []string {
 	}).Get(&shuffled)
 
 	return shuffled
+}
+
+func NextStage(state *RoomState) {
+	switch state.RoundStage {
+	case "preflop":
+		state.RoundStage = "flop"
+	case "flop":
+		state.RoundStage = "turn"
+	case "turn":
+		state.RoundStage = "river"
+	case "river":
+		state.RoundStage = "showdown"
+	default:
+		state.RoundStage = "ended"
+	}
+}
+
+func DealBoardCards(state *RoomState) {
+	switch state.RoundStage {
+	case "flop":
+		if len(state.Deck) >= 3 {
+			state.BoardCards = append(state.BoardCards, state.Deck[0:3]...)
+			state.Deck = state.Deck[3:]
+		}
+	case "turn", "river":
+		if len(state.Deck) >= 1 {
+			state.BoardCards = append(state.BoardCards, state.Deck[0])
+			state.Deck = state.Deck[1:]
+		}
+	}
+}
+
+func IsBettingRoundOver(state *RoomState) bool {
+	activePlayers := 0
+	for _, id := range state.PlayerOrder {
+		if state.PlayerFolded[id] || state.PlayerAllIn[id] {
+			continue
+		}
+		activePlayers++
+		if !state.HasActed[id] {
+			return false
+		}
+	}
+	return activePlayers <= 1 || true
+}
+
+func EvaluateWinner(state *RoomState) (string, string) {
+	var best HandScore
+	var winner string
+
+	for _, playerID := range state.PlayerOrder {
+		if state.PlayerFolded[playerID] {
+			continue
+		}
+
+		cards := append([]string{}, state.PlayerCards[playerID]...)
+		cards = append(cards, state.BoardCards...)
+
+		score := EvaluateHand(cards)
+		if winner == "" || score.Rank > best.Rank {
+			best = score
+			winner = playerID
+		}
+	}
+
+	return winner, best.Desc
+}
+
+func sendToPlayer(userID string, message string) {
+	if conn := manager.Manager.Get(userID); conn != nil {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(message))
+	}
 }
