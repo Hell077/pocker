@@ -16,9 +16,10 @@ type CreateRoomResponse struct {
 }
 
 type PlayerActionRequest struct {
-	UserID   string `json:"userID" validate:"required"`
-	Activity string `json:"activity" validate:"required"`
-	RoomID   string `json:"roomID" validate:"required"`
+	UserID   string   `json:"user_id"`
+	RoomID   string   `json:"room_id"`
+	Activity string   `json:"activity"`
+	Args     []string `json:"args"` // 🆕 добавь это поле
 }
 
 type StartGameRequest struct {
