@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"fmt"
 	"github.com/gofiber/websocket/v2"
 	"sync"
 )
@@ -58,14 +59,13 @@ func (m *ConnectionManager) Broadcast(roomID string, message string) {
 	}
 }
 
-func (m *ConnectionManager) SendToUser(roomID, userID, message string) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if room, ok := m.rooms[roomID]; ok {
-		if conn, exists := room[userID]; exists && conn != nil {
-			_ = conn.WriteMessage(websocket.TextMessage, []byte(message))
-		}
+func (m *ConnectionManager) SendToUser(roomID, userID, msg string) error {
+	conn, ok := m.GetConnection(roomID, userID)
+	if !ok {
+		return fmt.Errorf("room not found for user %s", userID)
 	}
+	err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+	return err
 }
 
 func (m *ConnectionManager) Get(userID string) *websocket.Conn {
@@ -78,4 +78,41 @@ func (m *ConnectionManager) Get(userID string) *websocket.Conn {
 		}
 	}
 	return nil
+}
+
+func (m *ConnectionManager) GetConnection(roomID, userID string) (*websocket.Conn, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if roomUsers, ok := m.rooms[roomID]; ok {
+		conn, exists := roomUsers[userID]
+		return conn, exists
+	}
+	return nil, false
+}
+
+func (m *ConnectionManager) GetRoomID(userID string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for roomID, users := range m.rooms {
+		if _, ok := users[userID]; ok {
+			return roomID
+		}
+	}
+	return ""
+}
+
+func (m *ConnectionManager) DisconnectAll(roomID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if conns, ok := m.rooms[roomID]; ok {
+		for userID, conn := range conns {
+			_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Game ended"))
+			_ = conn.Close()
+			delete(conns, userID)
+		}
+		delete(m.rooms, roomID)
+	}
 }
