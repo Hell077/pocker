@@ -64,7 +64,7 @@ func (s *authService) Login(email, password string) (string, string, error) {
 		return "", "", errors.New("invalid credentials")
 	}
 
-	accessToken, err := generateJWT(account.ID, 15*time.Minute)
+	accessToken, err := generateJWT(account.ID, 10*time.Hour)
 	if err != nil {
 		return "", "", err
 	}
