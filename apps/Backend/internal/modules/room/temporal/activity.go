@@ -9,9 +9,7 @@ import (
 )
 
 func SendMessageActivity(ctx context.Context, roomID, userID, message string) error {
-	manager.Manager.SendToUser(roomID, userID, message)
-	log.Printf("📤 WS sent to %s (%s): %s", userID, roomID, message)
-	return nil
+	return manager.Manager.SendToUser(roomID, userID, message)
 }
 
 func SendCardToUserActivity(ctx context.Context, roomID, userID, message string) error {
@@ -25,11 +23,18 @@ func SaveGameHistoryActivity(ctx context.Context, state *RoomState) error {
 	return nil
 }
 
-func sendToAllPlayers(ctx workflow.Context, players map[string]bool, msg string) {
-	ao := workflow.ActivityOptions{StartToCloseTimeout: 5 * time.Second}
+func sendToAllPlayers(ctx workflow.Context, roomID string, players map[string]bool, message string) {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Second,
+	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	for userID := range players {
-		_ = workflow.ExecuteActivity(ctx, SendMessageActivity, userID, msg)
+	for playerID := range players {
+		_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, message)
 	}
+}
+
+func DisconnectAllUsersActivity(ctx context.Context, roomID string) error {
+	manager.Manager.DisconnectAll(roomID)
+	return nil
 }
