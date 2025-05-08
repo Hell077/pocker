@@ -1,9 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import axios from 'axios'
-import { useToast } from '@/hooks/useToast'
-
-const API_URL = 'http://Backend/api'
-// const API_URL = 'localhost:3000/api'
+import { useToast } from '@hooks/useToast'
+import { API_URL } from '@/env/api';
 
 interface User {
   id: string
