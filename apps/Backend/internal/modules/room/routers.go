@@ -42,5 +42,4 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 			_ = c.Close()
 		}
 	}))
-
 }

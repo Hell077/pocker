@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -125,22 +126,30 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
 			break
 		}
 
+		var req dto.PlayerActionRequest
+		if err := json.Unmarshal(message, &req); err != nil {
+			h.logger.Warn("❗ Invalid player action JSON", zap.Error(err))
+			continue
+		}
+
 		h.logger.Info("📩 Player action",
-			zap.String("roomID", roomID),
-			zap.String("userID", userID),
-			zap.ByteString("msg", message),
+			zap.String("roomID", req.RoomID),
+			zap.String("userID", req.UserID),
+			zap.String("action", req.Activity),
+			zap.Strings("args", req.Args),
 		)
 
-		h.logger.Info("📡 Sending join-room signal", zap.String("roomID", roomID), zap.String("userID", userID))
-		err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "player-move", room_temporal.PlayerMoveSignal{
-			UserID: userID,
-			Move:   string(message),
+		err = h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "player-move", room_temporal.PlayerMoveSignal{
+			UserID: req.UserID,
+			Action: req.Activity,
+			Args:   req.Args,
 		})
 		if err != nil {
 			h.logger.Error("❌ Failed to send player-move", zap.Error(err))
 		}
 	}
 
+	// При выходе отправляем leave-room
 	err = h.temporal.SignalWorkflow(context.Background(), "room_"+roomID, "", "leave-room", room_temporal.LeaveRoomSignal{
 		UserID: userID,
 	})
@@ -196,8 +205,10 @@ func (h *RoomHandler) PlayerAction(c *fiber.Ctx) error {
 
 	err := h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "player-move", room_temporal.PlayerMoveSignal{
 		UserID: req.UserID,
-		Move:   req.Activity,
+		Action: req.Activity,
+		Args:   req.Args,
 	})
+
 	if err != nil {
 		h.logger.Error("❌ Failed to send player-move", zap.Error(err))
 		return c.Status(500).JSON(fiber.Map{"error": "failed to signal workflow"})

@@ -1,15 +1,7 @@
 basePath: /api
 definitions:
-  dto.EloTable:
-    properties:
-      elo:
-        type: integer
-      games:
-        type: integer
-      username:
-        type: string
-      win_rate:
-        type: number
+  fiber.Map:
+    additionalProperties: true
     type: object
   internal_modules_auth_handler.RefreshTokenRequest:
     properties:
@@ -56,6 +48,11 @@ definitions:
         example: username
         type: string
     type: object
+  poker_internal_modules_daily_rewards_dto.GetTime:
+    properties:
+      cooldown_seconds:
+        type: integer
+    type: object
   poker_internal_modules_room_dto.CreateRoomRequest:
     properties:
       limits:
@@ -90,6 +87,39 @@ definitions:
         type: string
     required:
     - roomID
+    type: object
+  poker_internal_modules_stats_dto.EloTable:
+    properties:
+      elo:
+        type: integer
+      games:
+        type: integer
+      username:
+        type: string
+      win_rate:
+        type: number
+    type: object
+  poker_packages_database.CurrentDayRewardItem:
+    properties:
+      currentDayRewardID:
+        type: string
+      id:
+        type: string
+      reward:
+        type: integer
+    type: object
+  poker_packages_database.Reward:
+    properties:
+      amount:
+        type: integer
+      claimedAt:
+        type: string
+      id:
+        type: string
+      rewardDate:
+        type: string
+      userID:
+        type: string
     type: object
 info:
   contact: {}
@@ -206,6 +236,66 @@ paths:
       summary: Register new user
       tags:
       - Auth
+  /daily-reward:
+    post:
+      description: Returns the daily reward for the user (creates it if not exists)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/poker_packages_database.Reward'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/fiber.Map'
+      security:
+      - BearerAuth: []
+      summary: Claim daily reward
+      tags:
+      - daily-reward
+  /daily-reward/cooldown:
+    get:
+      description: Returns the time (in seconds) left until the user can claim the
+        next daily reward.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/poker_internal_modules_daily_rewards_dto.GetTime'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/fiber.Map'
+      security:
+      - BearerAuth: []
+      summary: Get time until next daily reward
+      tags:
+      - daily-reward
+  /daily-reward/wheel:
+    get:
+      description: Returns the list of possible rewards in the daily wheel
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/poker_packages_database.CurrentDayRewardItem'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/fiber.Map'
+      security:
+      - BearerAuth: []
+      summary: Get wheel reward list
+      tags:
+      - daily-reward
   /room/action:
     post:
       consumes:
@@ -404,7 +494,7 @@ paths:
           schema:
             additionalProperties:
               items:
-                $ref: '#/definitions/dto.EloTable'
+                $ref: '#/definitions/poker_internal_modules_stats_dto.EloTable'
               type: array
             type: object
         "500":

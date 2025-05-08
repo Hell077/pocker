@@ -184,6 +184,102 @@ const docTemplate = `{
                 }
             }
         },
+        "/daily-reward": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the daily reward for the user (creates it if not exists)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "daily-reward"
+                ],
+                "summary": "Claim daily reward",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/poker_packages_database.Reward"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    }
+                }
+            }
+        },
+        "/daily-reward/cooldown": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the time (in seconds) left until the user can claim the next daily reward.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "daily-reward"
+                ],
+                "summary": "Get time until next daily reward",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/poker_internal_modules_daily_rewards_dto.GetTime"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    }
+                }
+            }
+        },
+        "/daily-reward/wheel": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the list of possible rewards in the daily wheel",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "daily-reward"
+                ],
+                "summary": "Get wheel reward list",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/poker_packages_database.CurrentDayRewardItem"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    }
+                }
+            }
+        },
         "/room/action": {
             "post": {
                 "security": [
@@ -494,7 +590,7 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/definitions/dto.EloTable"
+                                    "$ref": "#/definitions/poker_internal_modules_stats_dto.EloTable"
                                 }
                             }
                         }
@@ -513,22 +609,9 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.EloTable": {
+        "fiber.Map": {
             "type": "object",
-            "properties": {
-                "elo": {
-                    "type": "integer"
-                },
-                "games": {
-                    "type": "integer"
-                },
-                "username": {
-                    "type": "string"
-                },
-                "win_rate": {
-                    "type": "number"
-                }
-            }
+            "additionalProperties": true
         },
         "internal_modules_auth_handler.RefreshTokenRequest": {
             "type": "object",
@@ -596,6 +679,14 @@ const docTemplate = `{
                 }
             }
         },
+        "poker_internal_modules_daily_rewards_dto.GetTime": {
+            "type": "object",
+            "properties": {
+                "cooldown_seconds": {
+                    "type": "integer"
+                }
+            }
+        },
         "poker_internal_modules_room_dto.CreateRoomRequest": {
             "type": "object",
             "required": [
@@ -643,6 +734,57 @@ const docTemplate = `{
             ],
             "properties": {
                 "roomID": {
+                    "type": "string"
+                }
+            }
+        },
+        "poker_internal_modules_stats_dto.EloTable": {
+            "type": "object",
+            "properties": {
+                "elo": {
+                    "type": "integer"
+                },
+                "games": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "win_rate": {
+                    "type": "number"
+                }
+            }
+        },
+        "poker_packages_database.CurrentDayRewardItem": {
+            "type": "object",
+            "properties": {
+                "currentDayRewardID": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reward": {
+                    "type": "integer"
+                }
+            }
+        },
+        "poker_packages_database.Reward": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "claimedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "rewardDate": {
+                    "type": "string"
+                },
+                "userID": {
                     "type": "string"
                 }
             }
