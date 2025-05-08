@@ -1,70 +1,73 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import axios from 'axios'
+import { useToast } from '@/hooks/useToast'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 interface User {
-  id: string;
-  email: string;
-  username: string;
-  avatarUrl?: string;
-  balance: number;
+  id: string
+  email: string
+  username: string
+  avatarUrl?: string
+  balance: number
 }
 
 interface AuthContextType {
-  isOpen: boolean;
-  openModal: () => void;
-  closeModal: () => void;
-  user: User | null;
-  isAuthenticated: boolean;
-  logout: () => void;
-  setUser: (user: User | null) => void;
+  isOpen: boolean
+  openModal: () => void
+  closeModal: () => void
+  user: User | null
+  isAuthenticated: boolean
+  logout: () => void
+  setUser: (user: User | null) => void
 }
 
 const AuthContext = createContext<AuthContextType>({
   isOpen: false,
-  openModal: () => {
-  },
-  closeModal: () => {
-  },
+  openModal: () => {},
+  closeModal: () => {},
   user: null,
   isAuthenticated: false,
-  logout: () => {
-  },
-  setUser: () => {
-  },
-});
+  logout: () => {},
+  setUser: () => {},
+})
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const { error, success } = useToast()
 
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
+  const openModal = () => setIsOpen(true)
+  const closeModal = () => setIsOpen(false)
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    document.cookie = `username=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `balance=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `avatarUrl=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    setUser(null);
-  };
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+
+    document.cookie = `username=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    document.cookie = `userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    document.cookie = `email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    document.cookie = `balance=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    document.cookie = `avatarUrl=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+
+    setUser(null)
+    window.dispatchEvent(new Event('auth-logout'))
+    success('Вы успешно вышли из аккаунта')
+  }
 
   const fetchMe = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) return null;
+      const token = localStorage.getItem('accessToken')
+      if (!token) return null
+
       const { data } = await axios.get<User>(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `${token}`,
         },
-      });
+      })
 
       const userData = {
         id: data.id,
@@ -72,35 +75,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: data.username,
         avatarUrl: data.avatarUrl,
         balance: data.balance,
-      };
+      }
 
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userData))
 
-      document.cookie = `userId=${userData.id}; path=/;`;
-      document.cookie = `email=${encodeURIComponent(userData.email)}; path=/;`;
+      document.cookie = `userId=${userData.id}; path=/;`
+      document.cookie = `email=${encodeURIComponent(userData.email)}; path=/;`
       if (userData.username) {
-        document.cookie = `username=${encodeURIComponent(userData.username)}; path=/;`;
+        document.cookie = `username=${encodeURIComponent(userData.username)}; path=/;`
       }
       if (userData.avatarUrl) {
-        document.cookie = `avatarUrl=${encodeURIComponent(userData.avatarUrl)}; path=/;`;
+        document.cookie = `avatarUrl=${encodeURIComponent(userData.avatarUrl)}; path=/;`
       }
       if (userData.balance !== undefined) {
-        document.cookie = `balance=${userData.balance}; path=/;`;
+        document.cookie = `balance=${userData.balance}; path=/;`
       }
 
-      return userData;
+      return userData
     } catch {
-      logout();
-      return null;
+      error('Сессия истекла. Выполнен выход из аккаунта.')
+      logout()
+      return null
     }
-  };
+  }
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken')
     if (token) {
-      fetchMe().then((me) => me && setUser(me));
+      fetchMe().then((me) => me && setUser(me))
     }
-  }, []);
+  }, [])
 
   return (
     <AuthContext.Provider
@@ -117,65 +121,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
       <AuthModal isOpen={isOpen} onClose={closeModal} />
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
 interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { setUser } = useAuth()
+  const { error, success } = useToast()
 
   const resetState = useCallback(() => {
-    setIsLogin(true);
-    setEmail('');
-    setUsername('');
-    setPassword('');
-  }, []);
+    setIsLogin(true)
+    setEmail('')
+    setUsername('')
+    setPassword('')
+  }, [])
 
   useEffect(() => {
-    if (!isOpen) resetState();
-  }, [isOpen, resetState]);
+    if (!isOpen) resetState()
+  }, [isOpen, resetState])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+      if (e.key === 'Escape') onClose()
+    }
+    if (isOpen) window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
-    const url = `${API_URL}${isLogin ? '/auth/login' : '/auth/register'}`;
-    const body = isLogin
-      ? { email, password }
-      : { email, password, username };
+    const url = `${API_URL}${isLogin ? '/auth/login' : '/auth/register'}`
+    const body = isLogin ? { email, password } : { email, password, username }
 
     try {
-      const { data } = await axios.post<{ access_token: string; refresh_token: string }>(url, body);
+      const { data } = await axios.post<{ access_token: string; refresh_token: string }>(url, body)
 
       if (!data.access_token || !data.refresh_token) {
-        throw new Error('Tokens not received');
+        throw new Error('Tokens not received')
       }
 
-      localStorage.setItem('accessToken', data.access_token);
-      localStorage.setItem('refreshToken', data.refresh_token);
+      localStorage.setItem('accessToken', data.access_token)
+      localStorage.setItem('refreshToken', data.refresh_token)
 
       const me = await axios.get<User>(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `${data.access_token}`,
         },
-      });
+      })
 
       const userData = {
         id: me.data.id,
@@ -183,24 +186,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         username: me.data.username,
         avatarUrl: me.data.avatarUrl,
         balance: me.data.balance,
-      };
+      }
 
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData)
+      localStorage.setItem('user', JSON.stringify(userData))
 
-      document.cookie = `userId=${userData.id}; path=/;`;
-      document.cookie = `email=${encodeURIComponent(userData.email)}; path=/;`;
+      document.cookie = `userId=${userData.id}; path=/;`
+      document.cookie = `email=${encodeURIComponent(userData.email)}; path=/;`
       if (userData.username) {
-        document.cookie = `username=${encodeURIComponent(userData.username)}; path=/;`;
+        document.cookie = `username=${encodeURIComponent(userData.username)}; path=/;`
       }
       if (userData.avatarUrl) {
-        document.cookie = `avatarUrl=${encodeURIComponent(userData.avatarUrl)}; path=/;`;
+        document.cookie = `avatarUrl=${encodeURIComponent(userData.avatarUrl)}; path=/;`
       }
       if (userData.balance !== undefined) {
-        document.cookie = `balance=${userData.balance}; path=/;`;
+        document.cookie = `balance=${userData.balance}; path=/;`
       }
 
-      onClose();
+      window.dispatchEvent(new Event('auth-updated'))
+      onClose()
+      success(isLogin ? 'Успешный вход!' : 'Регистрация завершена!')
     } catch (err) {
       let message = 'Unknown error'
 
@@ -213,14 +218,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           message = e.message
         }
       }
-      alert(message)
-    }
-    finally {
-      setLoading(false);
-    }
-  };
 
-  if (!isOpen) return null;
+      error(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!isOpen) return null
 
   return (
     <div
@@ -296,5 +301,5 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -23,4 +23,5 @@ type Me struct {
 	Id       string `json:"id,omitempty"`
 	Username string `json:"username,omitempty"`
 	Email    string `json:"email,omitempty"`
+	Balance  int64  `json:"balance"`
 }

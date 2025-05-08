@@ -20,16 +20,11 @@ export default function ProfilePage() {
         }
     }
 
-    const user = {
-        nickname: 'AcePlayer',
-        balance: 1250,
-        elo: 1520,
-        stats: {
-            gamesPlayed: 240,
-            wins: 125,
-            chipsWon: 200500,
-        },
-    }
+    const [user] = useState<{
+        username: string
+        balance: number
+        avatarUrl?: string
+    } | null>(null)
 
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-900 to-black text-white">
@@ -55,22 +50,24 @@ export default function ProfilePage() {
                         <div className="flex items-center gap-6 mb-6">
                             <div className="w-24 h-24 rounded-full border-2 border-pink-500 bg-gray-800" />
                             <div>
-                                <h2 className="text-2xl font-bold">{user.nickname}</h2>
-                                <p className="text-green-400 font-medium text-sm">Баланс: ${user.balance}</p>
+                                <h2 className="text-2xl font-bold">{user?.username}</h2>
+                                <p className="text-green-400 font-medium text-sm">
+                                    Баланс: {user?.balance ?? 0}
+                                </p>
                             </div>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-center">
                             <div>
                                 <p className="text-sm text-gray-400">Сыграно игр</p>
-                                <p className="text-xl font-bold text-cyan-400">{user.stats.gamesPlayed}</p>
-                            </div>
+                                {/*<p className="text-xl font-bold text-cyan-400">{user.stats.gamesPlayed}</p>*/}
+                            // </div>
                             <div>
                                 <p className="text-sm text-gray-400">Побед</p>
-                                <p className="text-xl font-bold text-cyan-400">{user.stats.wins}</p>
+                                {/*<p className="text-xl font-bold text-cyan-400">{user.stats.wins}</p>*/}
                             </div>
                             <div>
                                 <p className="text-sm text-gray-400">Выиграно фишек</p>
-                                <p className="text-xl font-bold text-cyan-400">{user.stats.chipsWon.toLocaleString()}</p>
+                                {/*<p className="text-xl font-bold text-cyan-400">{user.stats.chipsWon.toLocaleString()}</p>*/}
                             </div>
                         </div>
                         <div className="mt-8">
@@ -78,10 +75,10 @@ export default function ProfilePage() {
                             <div className="bg-gray-800 w-full h-4 rounded-full overflow-hidden">
                                 <div
                                     className="bg-gradient-to-r from-pink-500 to-purple-500 h-full"
-                                    style={{ width: `${Math.min(user.elo / 20, 100)}%` }}
+                                    // style={{ width: `${Math.min(user.elo / 20, 100)}%` }}
                                 ></div>
                             </div>
-                            <p className="text-right text-xs text-gray-400 mt-1">{user.elo}</p>
+                             {/*<p className="text-right text-xs text-gray-400 mt-1">{user.elo}</p>*/}
                         </div>
                     </div>
                 )}
