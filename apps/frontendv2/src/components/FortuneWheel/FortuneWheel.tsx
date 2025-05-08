@@ -12,8 +12,6 @@ const COLORS = [
     '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd', '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
 ]
 
-
-
 export default function FortuneWheel() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [segments, setSegments] = useState<string[]>([])
@@ -21,7 +19,7 @@ export default function FortuneWheel() {
     const [spinning, setSpinning] = useState(false)
     const [result, setResult] = useState<string | null>(null)
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const API_URL = window.ENV?.VITE_API_URL
     const {success, error, warning } = useToast()
     const SEGMENT_ANGLE = 360 / segments.length
 
@@ -94,11 +92,12 @@ export default function FortuneWheel() {
               console.error('Ошибка загрузки сегментов:', err)
               error('Не удалось загрузить список наград')
           })
-    }, [API_URL, error])
+    }, [])
 
     useEffect(() => {
         loadWheelData()
     }, [loadWheelData])
+
 
     useEffect(() => {
         drawWheel()

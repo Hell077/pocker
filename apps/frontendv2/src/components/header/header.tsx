@@ -80,8 +80,8 @@ export default function PokerHeader({ currentUser, onLogout }: PokerHeaderProps)
 
         window.dispatchEvent(new Event('auth-logout'))
         setLocalUser(null)
-        onLogout() // вызываем внешний хендлер
-        navigate('/') // редирект на главную
+        onLogout()
+        navigate('/')
     }
 
     const user = currentUser || localUser
