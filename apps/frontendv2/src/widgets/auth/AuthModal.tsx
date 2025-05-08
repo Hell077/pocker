@@ -22,6 +22,16 @@ interface AuthContextType {
   setUser: (user: User | null) => void
 }
 
+type RegisterResponse = {
+  message: string
+}
+
+type LoginResponse = {
+  access_token: string
+  refresh_token: string
+}
+
+
 const AuthContext = createContext<AuthContextType>({
   isOpen: false,
   openModal: () => {},
@@ -165,7 +175,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const body = isLogin ? { email, password } : { email, password, username }
 
     try {
-      const { data } = await axios.post<{ access_token: string; refresh_token: string }>(url, body)
+      if (!isLogin) {
+        const { data } = await axios.post<RegisterResponse>(url, body)
+        if (data.message === 'registered') {
+          success('Регистрация прошла успешно!')
+          onClose()
+          return
+        }
+      }
+
+      const { data } = await axios.post<LoginResponse>(`${API_URL}/auth/login`, {
+        email,
+        password
+      })
 
       if (!data.access_token || !data.refresh_token) {
         throw new Error('Tokens not received')
@@ -205,7 +227,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
       window.dispatchEvent(new Event('auth-updated'))
       onClose()
-      success(isLogin ? 'Успешный вход!' : 'Регистрация завершена!')
+      success('Успешный вход!')
     } catch (err) {
       let message = 'Unknown error'
 

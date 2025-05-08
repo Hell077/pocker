@@ -7,7 +7,7 @@ export default function PokerTablePage() {
     const [uiVisible, setUiVisible] = useState(true)
 
     const currentUser = {
-        nickname: 'AcePlayer',
+        username: 'AcePlayer',
         balance: 1500,
         avatarUrl: '',
     }
