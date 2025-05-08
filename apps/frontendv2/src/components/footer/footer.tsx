@@ -2,6 +2,12 @@ import { useState } from 'react'
 import { FaTelegramPlane, FaEnvelope } from 'react-icons/fa'
 import TermsModal from '@widgets/Terms/TermsModal.tsx'
 import PrivacyModal from '@/widgets/Privacy/PrivacyModal.tsx'
+import { en } from '@lang/en.ts'
+import { ru } from '@lang/ru.ts'
+
+const language = localStorage.getItem('lang') || 'en'
+const lang = language === 'ru' ? ru : en
+
 
 export default function PokerFooter() {
     const [openTerms, setOpenTerms] = useState(false)
@@ -18,43 +24,42 @@ export default function PokerFooter() {
 
                         {/* О платформе */}
                         <div className="min-w-[200px] flex-1">
-                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">О платформе</h3>
+                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">{lang.footer.aboutTitle}</h3>
                             <p className="text-gray-400 text-xs leading-relaxed">
-                                POCKER — онлайн-платформа для игры в покер с друзьями и соперниками со всего мира.
+                                {lang.footer.aboutText}
                             </p>
                         </div>
 
-                        {/* Навигация */}
                         <div className="min-w-[160px] flex-1">
-                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">Навигация</h3>
+                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">{lang.footer.navigationTitle}</h3>
                             <div className="flex flex-col gap-1">
-                                <a href="/lobby" className="hover:text-pink-400 transition text-xs">Lobby</a>
+                                <a href="/lobby" className="hover:text-pink-400 transition text-xs">{lang.footer.navLobby}</a>
                                 <button
                                     onClick={() => setOpenTerms(true)}
                                     className="text-left hover:text-pink-400 transition text-xs"
                                 >
-                                    Условия
+                                    {lang.footer.navTerms}
                                 </button>
                                 <button
                                     onClick={() => setOpenPrivacy(true)}
                                     className="text-left hover:text-pink-400 transition text-xs"
                                 >
-                                    Конфиденциальность
+                                    {lang.footer.navPrivacy}
                                 </button>
                             </div>
                         </div>
 
                         {/* Контакты */}
                         <div className="min-w-[180px] flex-1">
-                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">Контакты</h3>
+                            <h3 className="text-pink-500 font-bold text-sm mb-2 uppercase tracking-wide">{lang.footer.contactsTitle}</h3>
                             <div className="flex flex-col gap-2 text-xs">
                                 <div className="flex items-center gap-2">
                                     <FaEnvelope className="text-pink-400" />
-                                    <span>support@pocker.com</span>
+                                    <span>{lang.footer.contactEmail}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <FaTelegramPlane className="text-pink-400" />
-                                    <span>@pocker_support</span>
+                                    <span>{lang.footer.contactTelegram}</span>
                                 </div>
                             </div>
                         </div>
