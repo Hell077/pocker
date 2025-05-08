@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"poker/internal/modules/auth"
+	daily_reward "poker/internal/modules/daily_rewards"
 	"poker/internal/modules/room"
 	"poker/internal/modules/stats"
 )
@@ -66,4 +67,5 @@ func (s *AppServer) RegisterRoutes() {
 	auth.RegisterRoutes(api, s.db, s.logger, s.temporal)
 	room.RegisterRoutes(api, s.db, s.logger, s.temporal)
 	stats.RegisterRoutes(api, s.db, s.logger, s.temporal)
+	daily_reward.RegisterRoutes(api, s.db, s.logger, s.temporal)
 }

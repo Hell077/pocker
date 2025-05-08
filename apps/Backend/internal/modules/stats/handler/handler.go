@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
+	_ "poker/internal/modules/stats/dto"
 	"poker/internal/modules/stats/service"
 )
 

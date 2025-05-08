@@ -5,6 +5,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -22,7 +23,8 @@ type LeaveRoomSignal struct {
 
 type PlayerMoveSignal struct {
 	UserID string
-	Move   string
+	Action string
+	Args   []string
 }
 
 type RoomState struct {
@@ -39,13 +41,16 @@ type RoomState struct {
 	Pot           int64
 	MoveLog       []string
 	GameStarted   bool
-	PlayerCards   map[string][]string // 🃏 личные карты игрока
-	Deck          []string            // 🎴 колода
+	PlayerCards   map[string][]string
+	Deck          []string
+	BoardCards    []string
+	RoundStage    string
+	HasActed      map[string]bool
+	PlayerBets    map[string]int64 // сколько поставил игрок в текущем раунде
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	logger := workflow.GetLogger(ctx)
-
 	state := &RoomState{
 		RoomID:    roomID,
 		Players:   make(map[string]bool),
@@ -60,7 +65,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	leaveChan := workflow.GetSignalChannel(ctx, "leave-room")
 	moveChan := workflow.GetSignalChannel(ctx, "player-move")
 
-	tick := time.Second * 60
+	tick := time.Minute * 2
 
 	_ = workflow.SetQueryHandler(ctx, "available-actions", func(userID string) ([]string, error) {
 		if _, ok := state.Players[userID]; !ok {
@@ -78,7 +83,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 
 			if len(state.Players) == 0 {
 				logger.Warn("❌ Cannot start game: no players in room")
-				sendToAllPlayers(ctx, state.Players, "⚠️ Game cannot start, no players in room")
+				sendToAllPlayers(ctx, state.RoomID, state.Players, "⚠️ Game cannot start, no players in room")
 				return
 			}
 
@@ -87,6 +92,9 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			state.PlayerChips = make(map[string]int64)
 			state.PlayerFolded = make(map[string]bool)
 			state.PlayerAllIn = make(map[string]bool)
+			state.RoundStage = "preflop"
+			state.HasActed = make(map[string]bool)
+			state.PlayerBets = make(map[string]int64)
 
 			for id := range state.Players {
 				state.PlayerOrder = append(state.PlayerOrder, id)
@@ -103,8 +111,18 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			state.CurrentPlayer = state.PlayerOrder[0]
 
 			logger.Info("🎮 Game started", "firstPlayer", state.CurrentPlayer)
-			sendToAllPlayers(ctx, state.Players, "🎮 Game started!")
-			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
+			sendToAllPlayers(ctx, state.RoomID, state.Players, "🎮 Game started!")
+
+			futures := dealCards(ctx, state, roomID)
+			for _, f := range futures {
+				if err := f.Get(ctx, nil); err != nil {
+					logger.Error("❌ Failed to execute card dealing activity", "err", err)
+				}
+			}
+
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
+			sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
+
 		})
 
 		dealCardsChan := workflow.GetSignalChannel(ctx, "deal-cards")
@@ -113,7 +131,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			var s DealCardsSignal
 			c.Receive(ctx, &s)
 
-			// 🕐 обязательно!
 			ao := workflow.ActivityOptions{
 				StartToCloseTimeout: 5 * time.Second,
 			}
@@ -141,7 +158,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 				_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, msg)
 			}
 
-			sendToAllPlayers(ctx, state.Players, "🃏 Cards have been dealt")
+			sendToAllPlayers(ctx, state.RoomID, state.Players, "🃏 Cards have been dealt")
 		})
 
 		selector.AddReceive(joinChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -150,7 +167,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 
 			if _, alreadyIn := state.Players[s.UserID]; alreadyIn {
 				logger.Warn("🚫 Duplicate user join attempt", "userID", s.UserID)
-				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🚫 Пользователь %s уже в комнате", s.UserID))
+				sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🚫 Пользователь %s уже в комнате", s.UserID))
 				return
 			}
 
@@ -158,7 +175,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			hasHadPlayers = true
 			logger.Info("👤 Player joined", "userID", s.UserID)
 
-			sendToAllPlayers(ctx, state.Players, fmt.Sprintf("✅ Player %s joined the room", s.UserID))
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("✅ Player %s joined the room", s.UserID))
 		})
 
 		selector.AddReceive(leaveChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -167,35 +184,70 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			delete(state.Players, s.UserID)
 			logger.Info("👋 Player left", "userID", s.UserID)
 
-			sendToAllPlayers(ctx, state.Players, "Player "+s.UserID+" left the room")
+			sendToAllPlayers(ctx, state.RoomID, state.Players, "Player "+s.UserID+" left the room")
 		})
 
 		selector.AddReceive(moveChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s PlayerMoveSignal
 			c.Receive(ctx, &s)
 
-			err := ValidatePlayerAction(s.Move, state, s.UserID)
+			err := ValidatePlayerAction(s.Action, state, s.UserID, s.Args)
 			if err != nil {
 				logger.Warn("🚫 Invalid player action",
 					"userID", s.UserID,
-					"move", s.Move,
+					"action", s.Action,
+					"args", s.Args,
 					"error", err.Error(),
 				)
-				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("❌ Invalid action by %s: %s", s.UserID, err.Error()))
+				sendToPlayer(ctx, state.RoomID, s.UserID, fmt.Sprintf("❌ Invalid action: %s", err.Error()))
 				return
 			}
 
-			entry := s.UserID + ": " + s.Move
+			entry := s.UserID + ": " + s.Action + " " + strings.Join(s.Args, " ")
 			state.MoveLog = append(state.MoveLog, entry)
-			logger.Info("✅ Player move", "userID", s.UserID, "move", s.Move)
-			sendToAllPlayers(ctx, state.Players, entry)
 
-			NextTurn(state)
-			if state.CurrentPlayer != "" {
-				sendToAllPlayers(ctx, state.Players, fmt.Sprintf("🕓 Now playing: %s", state.CurrentPlayer))
+			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action, "args", s.Args)
+			sendToAllPlayers(ctx, state.RoomID, state.Players, entry)
+
+			state.HasActed[s.UserID] = true
+
+			handler := ActionRegistry[s.Action]
+			handler.Execute(state, s.UserID, s.Args)
+
+			NextTurn(ctx, state)
+
+			if IsBettingRoundOver(state) {
+				logger.Info("✅ All players acted. Advancing stage...")
+				state.PlayerBets = make(map[string]int64)
+				state.CurrentBet = 0
+				state.LastRaise = 0
+				NextStage(state)
+
+				if state.RoundStage == "ended" || state.RoundStage == "showdown" {
+					sendToAllPlayers(ctx, state.RoomID, state.Players, "🏁 Showdown begins...")
+
+					winnerID, combo := EvaluateWinner(state)
+					if winnerID != "" {
+						sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🥇 Winner: %s | %s", winnerID, combo))
+						state.PlayerChips[winnerID] += state.Pot
+						sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("💰 %s wins the pot: %d", winnerID, state.Pot))
+						state.Pot = 0
+					} else {
+						sendToAllPlayers(ctx, state.RoomID, state.Players, "😶 No winner")
+					}
+
+					state.RoundStage = "ended"
+				} else {
+					DealBoardCards(state)
+					sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🃏 Stage: %s | Board: %v", state.RoundStage, state.BoardCards))
+					state.HasActed = make(map[string]bool)
+					state.CurrentPlayer = state.PlayerOrder[0]
+					sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
+				}
+			} else if state.CurrentPlayer != "" {
+				sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🕓 Now playing: %s", state.CurrentPlayer))
+				sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
 				logger.Info("🔁 Turn passed", zap.String("nextPlayer", state.CurrentPlayer))
-			} else {
-				logger.Info("🏁 Round ended — no next player found")
 			}
 		})
 
@@ -222,16 +274,21 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	ao := workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Second}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	err := workflow.ExecuteActivity(ctx, SaveGameHistoryActivity, state).Get(ctx, nil)
-	if err != nil {
+	if err := workflow.ExecuteActivity(ctx, SaveGameHistoryActivity, state).Get(ctx, nil); err != nil {
 		logger.Error("❌ Failed to save history", "err", err)
 	}
 
-	logger.Info("🏁 Room ended")
+	logger.Info("📴 Disconnecting all users from the room...")
+
+	if err := workflow.ExecuteActivity(ctx, DisconnectAllUsersActivity, state.RoomID).Get(ctx, nil); err != nil {
+		logger.Error("❌ Failed to disconnect users", "err", err)
+	}
+
+	logger.Info("🏁 Game ended. Terminating workflow...")
 	return nil
 }
 
-func NextTurn(state *RoomState) {
+func NextTurn(ctx workflow.Context, state *RoomState) {
 	n := len(state.PlayerOrder)
 	if n == 0 {
 		return
@@ -245,12 +302,13 @@ func NextTurn(state *RoomState) {
 		}
 	}
 
-	// ищем следующего, кто не сдался и не all-in
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
 		if !state.PlayerFolded[next] && !state.PlayerAllIn[next] {
 			state.CurrentPlayer = next
+
+			sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
 			return
 		}
 	}
@@ -280,4 +338,134 @@ func GenerateShuffledDeck(ctx workflow.Context) []string {
 	}).Get(&shuffled)
 
 	return shuffled
+}
+
+func NextStage(state *RoomState) {
+	switch state.RoundStage {
+	case "preflop":
+		state.RoundStage = "flop"
+	case "flop":
+		state.RoundStage = "turn"
+	case "turn":
+		state.RoundStage = "river"
+	case "river":
+		state.RoundStage = "showdown"
+	default:
+		state.RoundStage = "ended"
+	}
+}
+
+func DealBoardCards(state *RoomState) {
+	switch state.RoundStage {
+	case "flop":
+		if len(state.Deck) >= 3 {
+			state.BoardCards = append(state.BoardCards, state.Deck[0:3]...)
+			state.Deck = state.Deck[3:]
+		}
+	case "turn", "river":
+		if len(state.Deck) >= 1 {
+			state.BoardCards = append(state.BoardCards, state.Deck[0])
+			state.Deck = state.Deck[1:]
+		}
+	}
+}
+
+func IsBettingRoundOver(state *RoomState) bool {
+	activePlayers := 0
+	for _, id := range state.PlayerOrder {
+		if state.PlayerFolded[id] || state.PlayerAllIn[id] {
+			continue
+		}
+		activePlayers++
+		if !state.HasActed[id] {
+			return false
+		}
+	}
+	return true
+}
+
+func EvaluateWinner(state *RoomState) (string, string) {
+	var best HandScore
+	var winner string
+
+	for _, playerID := range state.PlayerOrder {
+		if state.PlayerFolded[playerID] {
+			continue
+		}
+
+		cards := append([]string{}, state.PlayerCards[playerID]...)
+		cards = append(cards, state.BoardCards...)
+
+		score := EvaluateHand(cards)
+		if winner == "" || score.Rank > best.Rank {
+			best = score
+			winner = playerID
+		}
+	}
+
+	return winner, best.Desc
+}
+
+func sendToPlayer(ctx workflow.Context, roomID, userID, message string) {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Second,
+	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, userID, message)
+}
+
+func dealCards(ctx workflow.Context, state *RoomState, roomID string) []workflow.Future {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Second,
+	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	state.Deck = GenerateShuffledDeck(ctx)
+	state.PlayerCards = make(map[string][]string)
+
+	var futures []workflow.Future
+
+	for _, playerID := range state.PlayerOrder {
+		if len(state.Deck) < 2 {
+			break
+		}
+
+		cards := []string{state.Deck[0], state.Deck[1]}
+		state.PlayerCards[playerID] = cards
+		state.Deck = state.Deck[2:]
+
+		eventName := fmt.Sprintf("deal-card-user-%s", playerID)
+		state.MoveLog = append(state.MoveLog, eventName)
+
+		msg := fmt.Sprintf("🎴 Your cards: %s, %s", cards[0], cards[1])
+		f := workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, msg)
+		futures = append(futures, f)
+	}
+
+	sendToAllPlayers(ctx, state.RoomID, state.Players, "🃏 Cards have been dealt")
+	return futures
+}
+
+type multiFuture struct {
+	ctx     workflow.Context
+	futures []workflow.Future
+}
+
+func (m *multiFuture) Get(ctx workflow.Context, valuePtr interface{}) error {
+	for _, f := range m.futures {
+		if err := f.Get(ctx, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *multiFuture) IsReady() bool {
+	for _, f := range m.futures {
+		if !f.IsReady() {
+			return false
+		}
+	}
+	return true
 }
