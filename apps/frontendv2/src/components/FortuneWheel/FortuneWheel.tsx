@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { authFetch } from '@/utils/authFetch'
 import { useToast } from '@/hooks/useToast'
 import { formatSecondsToTime } from '@/utils/time'
+import { API_URL } from '@/env/api';
 
 interface RewardItem {
     Reward: number
@@ -12,8 +13,6 @@ const COLORS = [
     '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd',
     '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
 ]
-
-const API_URL = window.ENV?.VITE_API_URL
 
 export default function FortuneWheel() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -150,7 +149,7 @@ export default function FortuneWheel() {
         const duration = 5000
         const start = performance.now()
 
-        const animate = (now: number) => {
+        const animate = async (now: number) => {
             const elapsed = now - start
             const progress = Math.min(elapsed / duration, 1)
             const ease = 1 - Math.pow(1 - progress, 5)
@@ -164,8 +163,18 @@ export default function FortuneWheel() {
                 setAngle(totalRotation)
                 setResult(amount)
                 setSpinning(false)
-                success(`🎉 Вы выиграли ${amount}$!`)
+                success(`🎉 Вы выиграли ${amount}!`)
+
+                try {
+                    const res = await authFetch(`${API_URL}/auth/me`)
+                    const data = await res.json()
+                    localStorage.setItem('user', JSON.stringify(data))
+                    window.dispatchEvent(new Event('auth-updated'))
+                } catch (err) {
+                    console.error('Ошибка при обновлении данных пользователя:', err)
+                }
             }
+
         }
 
         requestAnimationFrame(animate)
