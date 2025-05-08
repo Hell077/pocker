@@ -2,6 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { authFetch } from '@/utils/authFetch'
 import { useToast } from '@/hooks/useToast'
 import { formatSecondsToTime } from '@/utils/time'
+import { API_URL } from '@/env/api';
+import { en } from '@lang/en.ts'
+import { ru } from '@lang/ru.ts'
+
+const language = localStorage.getItem('lang') || 'en'
+const lang = language === 'ru' ? ru : en
+
 
 interface RewardItem {
     Reward: number
@@ -12,8 +19,6 @@ const COLORS = [
     '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd',
     '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
 ]
-
-const API_URL = window.ENV?.VITE_API_URL
 
 export default function FortuneWheel() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -86,12 +91,11 @@ export default function FortuneWheel() {
         authFetch(`${API_URL}/daily-reward/wheel`)
           .then(res => res.json())
           .then((data) => {
-              if (!Array.isArray(data.Items)) throw new Error('Неверный формат данных')
+              if (!Array.isArray(data.Items)) throw new Error(lang.wheel.invalid_data_format)
               setSegments(data.Items.map((item: RewardItem) => `${item.Reward}`))
           })
           .catch(err => {
-              console.error('Ошибка загрузки сегментов:', err)
-              error('Не удалось загрузить список наград')
+              error(lang.wheel.load_rewards_error(err))
           })
     }, [])
 
@@ -112,12 +116,11 @@ export default function FortuneWheel() {
 
             if (data.cooldown_seconds > 0) {
                 const formatted = formatSecondsToTime(data.cooldown_seconds)
-                warning(`Следующее вращение через ${formatted}`)
+                warning(lang.wheel.next_spin_in(formatted))
                 return
             }
         } catch (err) {
-            console.error('Ошибка проверки cooldown:', err)
-            error('Ошибка при проверке возможности вращения')
+            error(lang.wheel.spin_check_error(err))
             return
         }
 
@@ -130,15 +133,14 @@ export default function FortuneWheel() {
             const data = await res.json()
             amount = `${data.reward.Amount}`
         } catch (err) {
-            console.error('Ошибка получения награды:', err)
-            error('Ошибка при получении награды')
+            error(lang.wheel.reward_fetch_error(err))
             setSpinning(false)
             return
         }
 
         const index = segments.indexOf(amount)
         if (index === -1) {
-            error(`Награда ${amount}$ не найдена на колесе`)
+            error(lang.wheel.reward_not_found(amount))
             setSpinning(false)
             return
         }
@@ -150,7 +152,7 @@ export default function FortuneWheel() {
         const duration = 5000
         const start = performance.now()
 
-        const animate = (now: number) => {
+        const animate = async (now: number) => {
             const elapsed = now - start
             const progress = Math.min(elapsed / duration, 1)
             const ease = 1 - Math.pow(1 - progress, 5)
@@ -164,8 +166,18 @@ export default function FortuneWheel() {
                 setAngle(totalRotation)
                 setResult(amount)
                 setSpinning(false)
-                success(`🎉 Вы выиграли ${amount}$!`)
+                success(`${lang.wheel.you_won} ${amount}!`)
+
+                try {
+                    const res = await authFetch(`${API_URL}/auth/me`)
+                    const data = await res.json()
+                    localStorage.setItem('user', JSON.stringify(data))
+                    window.dispatchEvent(new Event('auth-updated'))
+                } catch (err) {
+                    console.error('Ошибка при обновлении данных пользователя:', err)
+                }
             }
+
         }
 
         requestAnimationFrame(animate)
@@ -192,13 +204,13 @@ export default function FortuneWheel() {
           bg-gradient-to-br from-red-600 to-yellow-400 text-white font-bold text-lg border-4 border-white shadow-xl
           hover:scale-105 transition-all duration-300 disabled:opacity-60"
               >
-                  SPIN
+                  {lang.wheel.spin}
               </button>
           </div>
 
           {result && (
             <div className="text-center animate-fadeIn mt-6">
-                <h2 className="text-2xl font-bold text-yellow-300 mb-2">You won:</h2>
+                <h2 className="text-2xl font-bold text-yellow-300 mb-2">{lang.wheel.you_won}</h2>
                 <p className="text-4xl font-extrabold text-white">{result}$</p>
             </div>
           )}
