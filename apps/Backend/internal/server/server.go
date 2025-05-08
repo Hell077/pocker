@@ -24,9 +24,10 @@ func NewServer(db *gorm.DB, c client.Client, logger *zap.Logger) *AppServer {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "*",
-		AllowMethods: "*",
+		AllowOrigins:     "http://localhost:5173,http://localhost:3000",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+		AllowCredentials: true,
 	}))
 
 	app.Use(func(ctx *fiber.Ctx) error {

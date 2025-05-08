@@ -5,27 +5,25 @@ import (
 	"time"
 )
 
-// ✅ Пользователь
 type Account struct {
-	ID         string `gorm:"primaryKey"`
-	Password   string
-	Username   string
-	Email      string `gorm:"unique"`
-	AvatarLink string
-	Role       string `gorm:"default:user"` // user / admin / moderator
-	CreatedAt  int64
-	UpdatedAt  int64
+	ID             string `gorm:"primaryKey"`
+	Password       string
+	Username       string
+	Email          string `gorm:"unique"`
+	AvatarLink     string
+	Role           string `gorm:"default:user"` // user / admin / moderator
+	CreatedAt      int64
+	UpdatedAt      int64
+	AccountBalance AccountBalance `gorm:"foreignKey:UserID;references:ID"`
 }
 
-// 💰 Баланс пользователя
 type AccountBalance struct {
-	ID             string  `gorm:"primaryKey"`
-	UserID         string  `gorm:"not null;unique"`
-	User           Account `gorm:"foreignKey:UserID;references:ID"`
-	CurrentBalance string  `gorm:"not null"`
+	ID             string   `gorm:"primaryKey"`
+	UserID         string   `gorm:"not null;unique"`
+	User           *Account `gorm:"foreignKey:UserID;references:ID"`
+	CurrentBalance string   `gorm:"not null"`
 }
 
-// 🃏 Комната (стол)
 type Room struct {
 	gorm.Model
 	RoomID     string    `gorm:"not null;uniqueIndex"`
@@ -36,7 +34,6 @@ type Room struct {
 	Status     string    `gorm:"default:waiting"` // waiting / playing / finished
 }
 
-// 👤 Игрок в сессии
 type GamePlayer struct {
 	ID         string  `gorm:"primaryKey"`
 	GameID     string  `gorm:"not null"`
@@ -57,7 +54,6 @@ type GameSession struct {
 	CreatedAt int64
 }
 
-// ▶️ Действия игрока в рамках раздачи
 type GameMove struct {
 	ID          string `gorm:"primaryKey"`
 	GameID      string `gorm:"not null"`
