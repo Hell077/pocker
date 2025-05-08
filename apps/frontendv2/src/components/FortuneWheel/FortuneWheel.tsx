@@ -12,6 +12,8 @@ const COLORS = [
     '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd', '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
 ]
 
+
+
 export default function FortuneWheel() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [segments, setSegments] = useState<string[]>([])
@@ -20,8 +22,26 @@ export default function FortuneWheel() {
     const [result, setResult] = useState<string | null>(null)
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-    const { success, error, warning } = useToast()
+    const {success, error, warning } = useToast()
     const SEGMENT_ANGLE = 360 / segments.length
+
+    useEffect(() => {
+        let frameId: number
+
+        const idleSpin = () => {
+            setAngle(prev => prev + 0.05) // скорость вращения
+            frameId = requestAnimationFrame(idleSpin)
+        }
+
+        if (!spinning) {
+            frameId = requestAnimationFrame(idleSpin)
+        }
+
+        return () => {
+            cancelAnimationFrame(frameId)
+        }
+    }, [spinning])
+
 
     const drawWheel = useCallback(() => {
         const canvas = canvasRef.current
@@ -84,18 +104,6 @@ export default function FortuneWheel() {
         drawWheel()
     }, [drawWheel])
 
-    const claimReward = async () => {
-        try {
-            const res = await authFetch(`${API_URL}/daily-reward`, {
-                method: 'POST'
-            })
-            const data = await res.json()
-            success(`Получено: ${data.amount}$ 🎉`)
-        } catch (err) {
-            console.error('Error claiming reward:', err)
-            error('Ошибка при получении награды')
-        }
-    }
 
     const spinWheel = async () => {
         if (spinning || segments.length === 0) return
@@ -116,28 +124,49 @@ export default function FortuneWheel() {
         }
 
         setSpinning(true)
-        const fullSpins = 8
-        const randomTarget = Math.random() * 360
-        const total = fullSpins * 360 + randomTarget
-        const start = performance.now()
+        setResult(null)
+
+        let amount = '0'
+        try {
+            const res = await authFetch(`${API_URL}/daily-reward`, { method: 'POST' })
+            const data = await res.json()
+            amount = `${data.reward.Amount}`
+        } catch (err) {
+            console.error('Ошибка получения награды:', err)
+            error('Ошибка при получении награды')
+            setSpinning(false)
+            return
+        }
+
+        const index = segments.indexOf(amount)
+        if (index === -1) {
+            error(`Награда ${amount}$ не найдена на колесе`)
+            setSpinning(false)
+            return
+        }
+
+        const segmentAngle = 360 / segments.length
+        const targetAngle = 270 - (index * segmentAngle + segmentAngle / 2)
+        const fullSpins = 6
+        const totalRotation = fullSpins * 360 + targetAngle
         const duration = 5000
+        const start = performance.now()
 
         const animate = (now: number) => {
             const elapsed = now - start
             const progress = Math.min(elapsed / duration, 1)
             const ease = 1 - Math.pow(1 - progress, 5)
-            const current = angle + (total - angle) * ease
+            const current = ease * totalRotation
+
             setAngle(current)
 
             if (progress < 1) {
                 requestAnimationFrame(animate)
             } else {
-                const normalized = (360 - ((current % 360 + 360) % 360)) % 360
-                const index = Math.floor((normalized + SEGMENT_ANGLE / 2) / SEGMENT_ANGLE) % segments.length
-                const rewardValue = segments[index]
-                setResult(rewardValue)
-                claimReward()
+                setAngle(totalRotation)
+                setResult(amount)
                 setSpinning(false)
+                success(`🎉 Вы выиграли ${amount}$!`)
             }
         }
 
