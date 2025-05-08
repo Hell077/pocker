@@ -44,12 +44,21 @@ func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
 }
 
 func (r DailyRewardRepo) CreateReward() error {
-	today := time.Now().Truncate(24 * time.Hour)
+	loc, err := time.LoadLocation("Etc/GMT-14")
+	if err != nil {
+		return err
+	}
+
+	tomorrow := time.Now().In(loc).Truncate(24 * time.Hour)
 
 	var existing database.CurrentDayReward
-	err := r.db.Where("date = ?", today).First(&existing).Error
+	err = r.db.Where("date = ?", tomorrow).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
+	}
+
+	if existing.ID != "" {
+		return nil
 	}
 
 	items := make([]database.CurrentDayRewardItem, 20)
@@ -65,7 +74,7 @@ func (r DailyRewardRepo) CreateReward() error {
 
 	reward := database.CurrentDayReward{
 		ID:    rewardID,
-		Date:  today,
+		Date:  tomorrow,
 		Items: items,
 	}
 

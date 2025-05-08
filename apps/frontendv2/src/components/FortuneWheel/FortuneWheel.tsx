@@ -9,8 +9,11 @@ interface RewardItem {
 
 const COLORS = [
     '#ffd700', '#c0c0c0', '#cd7f32', '#e0115f', '#4169e1', '#3cb371', '#ff4500', '#8a2be2',
-    '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd', '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
+    '#00ced1', '#fa8072', '#ff8c00', '#7fffd4', '#ff1493', '#20b2aa', '#ff6347', '#dda0dd',
+    '#add8e6', '#90ee90', '#ff69b4', '#1e90ff'
 ]
+
+const API_URL = window.ENV?.VITE_API_URL
 
 export default function FortuneWheel() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -19,15 +22,14 @@ export default function FortuneWheel() {
     const [spinning, setSpinning] = useState(false)
     const [result, setResult] = useState<string | null>(null)
 
-    const API_URL = window.ENV?.VITE_API_URL
-    const {success, error, warning } = useToast()
+    const { success, error, warning } = useToast()
     const SEGMENT_ANGLE = 360 / segments.length
 
     useEffect(() => {
         let frameId: number
 
         const idleSpin = () => {
-            setAngle(prev => prev + 0.05) // скорость вращения
+            setAngle(prev => prev + 0.05)
             frameId = requestAnimationFrame(idleSpin)
         }
 
@@ -39,7 +41,6 @@ export default function FortuneWheel() {
             cancelAnimationFrame(frameId)
         }
     }, [spinning])
-
 
     const drawWheel = useCallback(() => {
         const canvas = canvasRef.current
@@ -98,11 +99,9 @@ export default function FortuneWheel() {
         loadWheelData()
     }, [loadWheelData])
 
-
     useEffect(() => {
         drawWheel()
     }, [drawWheel])
-
 
     const spinWheel = async () => {
         if (spinning || segments.length === 0) return
@@ -190,8 +189,8 @@ export default function FortuneWheel() {
                 onClick={spinWheel}
                 disabled={spinning}
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full
-            bg-gradient-to-br from-red-600 to-yellow-400 text-white font-bold text-lg border-4 border-white shadow-xl
-            hover:scale-105 transition-all duration-300 disabled:opacity-60"
+          bg-gradient-to-br from-red-600 to-yellow-400 text-white font-bold text-lg border-4 border-white shadow-xl
+          hover:scale-105 transition-all duration-300 disabled:opacity-60"
               >
                   SPIN
               </button>
