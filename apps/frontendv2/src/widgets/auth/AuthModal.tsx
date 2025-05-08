@@ -2,7 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import axios from 'axios'
 import { useToast } from '@/hooks/useToast'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = 'Backend/api'
+// const API_URL = 'localhost:3000/api'
 
 interface User {
   id: string
