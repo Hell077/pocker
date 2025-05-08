@@ -10,6 +10,9 @@ import LobbyPage from '@/pages/Lobby/Lobby';
 import FortuneWheel from '@/pages/FortuneWheel/FortuneWheel';
 import PokerTablePage from '@/pages/PokerTable/Table.tsx';
 import { AuthProvider } from '@widgets/auth/AuthModal.tsx';
+import { ProtectedRoute } from '@/utils/ProtectedRoute'; // путь укажи по своему проекту
+
+
 
 const App: FC = () => {
   return (
@@ -17,14 +20,21 @@ const App: FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<MainPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/leaderboard" element={<LeaderBoardPage />} />
-          <Route path="/lobby" element={<LobbyPage />} />
-          <Route path="/FortuneWheel" element={<FortuneWheel />} />
-          <Route path="/table/:id" element={<PokerTablePage />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/leaderboard" element={<ProtectedRoute><LeaderBoardPage /></ProtectedRoute>} />
+          <Route path="/lobby" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
+          <Route path="/FortuneWheel" element={<ProtectedRoute><FortuneWheel /></ProtectedRoute>} />
+          <Route path="/table/:id" element={<ProtectedRoute><PokerTablePage /></ProtectedRoute>} />
         </Routes>
-        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick
-                        pauseOnHover theme="dark" />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          theme="dark"
+        />
       </AuthProvider>
     </div>
   );
