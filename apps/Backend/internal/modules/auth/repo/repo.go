@@ -38,7 +38,7 @@ func (r *authRepo) GetAccountByEmail(email string) (*database.Account, error) {
 
 func (r *authRepo) MeByID(id string) (database.Account, error) {
 	var account database.Account
-	err := r.db.First(&account, "id = ?", id).Error
+	err := r.db.Preload("AccountBalance").First(&account, "id = ?", id).Error
 	if err != nil {
 		return account, err
 	}

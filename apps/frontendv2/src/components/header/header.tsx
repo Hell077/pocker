@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FaUserCircle } from 'react-icons/fa'
 import { useAuth } from '@/widgets/auth/AuthModal'
 
@@ -18,10 +18,11 @@ export default function PokerHeader({ currentUser, onLogout }: PokerHeaderProps)
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const { openModal } = useAuth()
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const navigate = useNavigate()
 
     const [localUser, setLocalUser] = useState<User | null>(null)
 
-    useEffect(() => {
+    const updateUserFromStorage = () => {
         const stored = localStorage.getItem('user')
         if (stored) {
             try {
@@ -32,15 +33,25 @@ export default function PokerHeader({ currentUser, onLogout }: PokerHeaderProps)
             } catch (err) {
                 console.error('Failed to parse user from localStorage:', err)
             }
+        } else {
+            setLocalUser(null)
+        }
+    }
+
+    useEffect(() => {
+        updateUserFromStorage()
+
+        window.addEventListener('auth-updated', updateUserFromStorage)
+        window.addEventListener('auth-logout', updateUserFromStorage)
+        return () => {
+            window.removeEventListener('auth-updated', updateUserFromStorage)
+            window.removeEventListener('auth-logout', updateUserFromStorage)
         }
     }, [])
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (
-              dropdownRef.current &&
-              !dropdownRef.current.contains(e.target as Node)
-            ) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setDropdownOpen(false)
             }
         }
@@ -55,6 +66,23 @@ export default function PokerHeader({ currentUser, onLogout }: PokerHeaderProps)
             document.removeEventListener('mousedown', handleClickOutside)
         }
     }, [dropdownOpen])
+
+    const handleLogout = () => {
+        localStorage.removeItem('user')
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+
+        document.cookie = `username=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+        document.cookie = `userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+        document.cookie = `email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+        document.cookie = `balance=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+        document.cookie = `avatarUrl=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+
+        window.dispatchEvent(new Event('auth-logout'))
+        setLocalUser(null)
+        onLogout() // вызываем внешний хендлер
+        navigate('/') // редирект на главную
+    }
 
     const user = currentUser || localUser
 
@@ -107,7 +135,7 @@ export default function PokerHeader({ currentUser, onLogout }: PokerHeaderProps)
                           <Link to="/profile" className="block px-4 py-2 text-white hover:bg-pink-600 rounded-t-xl">Profile</Link>
                           <Link to="/settings" className="block px-4 py-2 text-white hover:bg-pink-600">Settings</Link>
                           <button
-                            onClick={onLogout}
+                            onClick={handleLogout}
                             className="w-full text-left px-4 py-2 text-white hover:bg-pink-600 rounded-b-xl"
                           >
                               Logout

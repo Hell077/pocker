@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"poker/internal/modules/auth/dto"
 	"poker/internal/modules/auth/service"
+	"strconv"
 )
 
 type AuthHandler struct {
@@ -95,14 +96,22 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
+
 	acc, err := h.service.Me(userID)
 	if err != nil {
 		return c.Status(401).SendString("unauthorized")
 	}
+
+	var balance int64
+	if acc.AccountBalance.CurrentBalance != "" {
+		balance, _ = strconv.ParseInt(acc.AccountBalance.CurrentBalance, 10, 64)
+	}
+
 	return c.JSON(dto.Me{
-		Email:    acc.Email,
-		Id:       userID,
+		Id:       acc.ID,
 		Username: acc.Username,
+		Email:    acc.Email,
+		Balance:  balance,
 	})
 }
 
