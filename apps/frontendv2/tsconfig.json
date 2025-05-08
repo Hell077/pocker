@@ -35,11 +35,11 @@
       "@features/*": ["src/features/*"],
       "@entities/*": ["src/entities/*"],
       "@app/*": ["src/app/*"],
-      "@assets/*": ["src/assets/*"],
-      "@utils/*": ["src/shared/utils/*"],
-      "@hooks/*": ["src/shared/hooks/*"],
-      "@store/*": ["src/shared/store/*"],
-      "@config/*": ["src/shared/config/*"]
+      "@assets/*": ["src/*"],
+      "@utils/*": ["src/utils/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@store/*": ["src/store/*"],
+      "@config/*": ["src/config/*"]
     }
   },
   "include": [
