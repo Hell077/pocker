@@ -18,6 +18,7 @@ type DailyRewardRepoI interface {
 	SaveReward(reward database.Reward) error
 	CreateReward() error
 	SaveRewardWithBalanceAndStatistic(reward database.Reward) error
+	CreateTodayRewardIfNotExists() error
 }
 type DailyRewardRepo struct {
 	db *gorm.DB
@@ -30,64 +31,40 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
 	loc, err := time.LoadLocation("Etc/GMT-14")
 	if err != nil {
-		return database.CurrentDayReward{}, err
+		return database.CurrentDayReward{}, fmt.Errorf("failed to load timezone: %w", err)
 	}
 
-	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
-	utcDate := todayInLoc.UTC()
-
-	var existing database.CurrentDayReward
-	err = r.db.Where("date = ?", utcDate).First(&existing).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return database.CurrentDayReward{}, err
-	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		rewardID := uuid.New().String()
-		items := make([]database.CurrentDayRewardItem, 20)
-		for i := range items {
-			items[i] = database.CurrentDayRewardItem{
-				ID:                 uuid.New().String(),
-				CurrentDayRewardID: rewardID,
-				Reward:             utils.GenerateRandomMultipleOfFifty(),
-			}
-		}
-
-		newReward := database.CurrentDayReward{
-			ID:    rewardID,
-			Date:  utcDate,
-			Items: items,
-		}
-
-		if err := r.db.Create(&newReward).Error; err != nil {
-			return database.CurrentDayReward{}, err
-		}
-	}
+	today := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := today.UTC()
 
 	var reward database.CurrentDayReward
-	err = r.db.
-		Preload("Items").
-		Where("date = ?", utcDate).
-		First(&reward).
-		Error
-
+	err = r.db.Preload("Items").Where("date = ?", utcDate).First(&reward).Error
 	if err != nil {
-		return database.CurrentDayReward{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return database.CurrentDayReward{}, fmt.Errorf("daily reward not found: %w", err)
+		}
+		return database.CurrentDayReward{}, fmt.Errorf("failed to fetch reward: %w", err)
 	}
+
 	return reward, nil
 }
 
 func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
+	loc, err := time.LoadLocation("Etc/GMT-14")
+	if err != nil {
+		return fmt.Errorf("failed to load timezone: %w", err)
+	}
 
-	todayInLoc := time.Now().Truncate(24 * time.Hour)
-	utcDate := todayInLoc.UTC()
+	today := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := today.UTC()
 
 	var existing database.CurrentDayReward
-	err := r.db.Where("date = ?", utcDate).First(&existing).Error
+	err = r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("failed to check existing reward: %w", err)
+		return fmt.Errorf("failed to query existing reward: %w", err)
 	}
-	if existing.ID != "" {
-		return nil
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil // уже есть
 	}
 
 	rewardID := uuid.New().String()
@@ -116,24 +93,23 @@ func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
 func (r DailyRewardRepo) CreateReward() error {
 	loc, err := time.LoadLocation("Etc/GMT-14")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load timezone: %w", err)
 	}
 
-	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
-	utcDate := todayInLoc.UTC()
+	today := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := today.UTC()
 
 	var existing database.CurrentDayReward
 	err = r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
+		return fmt.Errorf("failed to query reward: %w", err)
 	}
-	if existing.ID != "" {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
 
-	items := make([]database.CurrentDayRewardItem, 20)
 	rewardID := uuid.New().String()
-
+	items := make([]database.CurrentDayRewardItem, 20)
 	for i := range items {
 		items[i] = database.CurrentDayRewardItem{
 			ID:                 uuid.New().String(),
@@ -149,8 +125,9 @@ func (r DailyRewardRepo) CreateReward() error {
 	}
 
 	if err := r.db.Create(&reward).Error; err != nil {
-		return err
+		return fmt.Errorf("failed to create reward: %w", err)
 	}
+
 	return nil
 }
 
