@@ -77,16 +77,12 @@ func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
 }
 
 func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
-	loc, err := time.LoadLocation("Etc/GMT-14")
-	if err != nil {
-		return fmt.Errorf("failed to load location: %w", err)
-	}
 
-	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
+	todayInLoc := time.Now().Truncate(24 * time.Hour)
 	utcDate := todayInLoc.UTC()
 
 	var existing database.CurrentDayReward
-	err = r.db.Where("date = ?", utcDate).First(&existing).Error
+	err := r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("failed to check existing reward: %w", err)
 	}
