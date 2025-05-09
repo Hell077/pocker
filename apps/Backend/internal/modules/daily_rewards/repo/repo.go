@@ -28,12 +28,45 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 }
 
 func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
-	var reward database.CurrentDayReward
-	today := time.Now().Truncate(24 * time.Hour)
+	loc, err := time.LoadLocation("Etc/GMT-14")
+	if err != nil {
+		return database.CurrentDayReward{}, err
+	}
 
-	err := r.db.
+	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := todayInLoc.UTC()
+
+	var existing database.CurrentDayReward
+	err = r.db.Where("date = ?", utcDate).First(&existing).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return database.CurrentDayReward{}, err
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		rewardID := uuid.New().String()
+		items := make([]database.CurrentDayRewardItem, 20)
+		for i := range items {
+			items[i] = database.CurrentDayRewardItem{
+				ID:                 uuid.New().String(),
+				CurrentDayRewardID: rewardID,
+				Reward:             utils.GenerateRandomMultipleOfFifty(),
+			}
+		}
+
+		newReward := database.CurrentDayReward{
+			ID:    rewardID,
+			Date:  utcDate,
+			Items: items,
+		}
+
+		if err := r.db.Create(&newReward).Error; err != nil {
+			return database.CurrentDayReward{}, err
+		}
+	}
+
+	var reward database.CurrentDayReward
+	err = r.db.
 		Preload("Items").
-		Where("date = ?", today).
+		Where("date = ?", utcDate).
 		First(&reward).
 		Error
 
@@ -43,20 +76,61 @@ func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
 	return reward, nil
 }
 
+func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
+	loc, err := time.LoadLocation("Etc/GMT-14")
+	if err != nil {
+		return fmt.Errorf("failed to load location: %w", err)
+	}
+
+	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := todayInLoc.UTC()
+
+	var existing database.CurrentDayReward
+	err = r.db.Where("date = ?", utcDate).First(&existing).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("failed to check existing reward: %w", err)
+	}
+	if existing.ID != "" {
+		return nil
+	}
+
+	rewardID := uuid.New().String()
+	items := make([]database.CurrentDayRewardItem, 20)
+	for i := range items {
+		items[i] = database.CurrentDayRewardItem{
+			ID:                 uuid.New().String(),
+			CurrentDayRewardID: rewardID,
+			Reward:             utils.GenerateRandomMultipleOfFifty(),
+		}
+	}
+
+	reward := database.CurrentDayReward{
+		ID:    rewardID,
+		Date:  utcDate,
+		Items: items,
+	}
+
+	if err := r.db.Create(&reward).Error; err != nil {
+		return fmt.Errorf("failed to create reward: %w", err)
+	}
+
+	return nil
+}
+
 func (r DailyRewardRepo) CreateReward() error {
 	loc, err := time.LoadLocation("Etc/GMT-14")
 	if err != nil {
 		return err
 	}
 
-	tomorrow := time.Now().In(loc).Truncate(24 * time.Hour)
+	todayInLoc := time.Now().In(loc).Truncate(24 * time.Hour)
+	utcDate := todayInLoc.UTC()
 
 	var existing database.CurrentDayReward
-	err = r.db.Where("date = ?", tomorrow).First(&existing).Error
+	err = r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-
 	if existing.ID != "" {
 		return nil
 	}
@@ -74,14 +148,13 @@ func (r DailyRewardRepo) CreateReward() error {
 
 	reward := database.CurrentDayReward{
 		ID:    rewardID,
-		Date:  tomorrow,
+		Date:  utcDate,
 		Items: items,
 	}
 
 	if err := r.db.Create(&reward).Error; err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -103,7 +176,6 @@ func (r DailyRewardRepo) GetUserTodayReward(userId string) (database.Reward, err
 	err := r.db.
 		Where("user_id = ? AND reward_date = ?", userId, today).
 		First(&reward).Error
-
 	return reward, err
 }
 
