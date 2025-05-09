@@ -29,16 +29,12 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 }
 
 func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
-	loc, err := time.LoadLocation("Etc/GMT-14")
-	if err != nil {
-		return database.CurrentDayReward{}, fmt.Errorf("failed to load timezone: %w", err)
-	}
-
+	loc := time.FixedZone("GMT-14", 14*60*60)
 	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	utcDate := today.UTC()
 
 	var reward database.CurrentDayReward
-	err = r.db.Preload("Items").Where("date = ?", utcDate).First(&reward).Error
+	err := r.db.Preload("Items").Where("date = ?", utcDate).First(&reward).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return database.CurrentDayReward{}, fmt.Errorf("daily reward not found: %w", err)
@@ -50,16 +46,12 @@ func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
 }
 
 func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
-	loc, err := time.LoadLocation("Etc/GMT-14")
-	if err != nil {
-		return fmt.Errorf("failed to load timezone: %w", err)
-	}
-
+	loc := time.FixedZone("GMT-14", 14*60*60)
 	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	utcDate := today.UTC()
 
 	var existing database.CurrentDayReward
-	err = r.db.Where("date = ?", utcDate).First(&existing).Error
+	err := r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("failed to query existing reward: %w", err)
 	}
@@ -91,21 +83,17 @@ func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
 }
 
 func (r DailyRewardRepo) CreateReward() error {
-	loc, err := time.LoadLocation("Etc/GMT-14")
-	if err != nil {
-		return fmt.Errorf("failed to load timezone: %w", err)
-	}
-
+	loc := time.FixedZone("GMT-14", 14*60*60)
 	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	utcDate := today.UTC()
 
 	var existing database.CurrentDayReward
-	err = r.db.Where("date = ?", utcDate).First(&existing).Error
+	err := r.db.Where("date = ?", utcDate).First(&existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("failed to query reward: %w", err)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
+		return nil // уже есть
 	}
 
 	rewardID := uuid.New().String()
