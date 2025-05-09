@@ -1,0 +1,68 @@
+/* src/components/WinModal/WinModal.module.css */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    padding: 2rem 3rem;
+    border-radius: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px #ff00ff, 0 0 50px #00ffff;
+    text-align: center;
+    animation: popIn 0.5s ease forwards;
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+}
+
+.rewardText {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: #00ffff;
+    text-shadow: 0 0 8px #ff00ff;
+}
+
+.closeButton {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: 0.3s;
+    font-size: 1rem;
+}
+
+.closeButton:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px #ff00ff, 0 0 25px #00ffff;
+}
