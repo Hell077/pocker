@@ -12,7 +12,6 @@ export const ru = {
     load_rewards_error: (err: unknown) => `Не удалось загрузить список наград: ${err}`,
     invalid_data_format: 'Неверный формат данных',
   },
-
   nav: {
     lobby: 'Лобби',
     leaderboard: 'Лидерборд',
@@ -23,9 +22,10 @@ export const ru = {
     pokerLobby: 'Покерное лобби',
     createTableDescription: 'Выбери настройки и создай стол',
     createRoomButton: 'Создать комнату',
-    bet:'Ставка',
-    players:'Игроков',
-    join:'Войти'
+    bet: 'Ставка',
+    players: 'Игроков',
+    join: 'Войти',
+    noRoomsMessage: 'Пока нет комнат. Создайте свой первый стол!',
   },
   createRoomModal: {
     title: 'Создать комнату',
@@ -56,7 +56,6 @@ export const ru = {
     nicknameHeader: 'Никнейм',
     eloHeader: 'ELO',
     load_error: (err: unknown) => `Ошибка загрузки лидерборда: ${err}`,
-
   },
   profile: {
     logout: 'Выйти',
@@ -78,7 +77,7 @@ export const ru = {
     uploadFile: 'Загрузить файл',
     changePassword: 'Изменить пароль',
   },
-  main:{
-    luck:'Испытай удачу'
+  main: {
+    luck: 'Испытай удачу',
   }
-};
+}

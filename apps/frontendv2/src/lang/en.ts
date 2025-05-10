@@ -22,9 +22,10 @@ export const en = {
     pokerLobby: 'Poker Lobby',
     createTableDescription: 'Choose settings and create a table',
     createRoomButton: 'Create Room',
-    bet:'Bet',
-    players:'Players',
-    join:'Join'
+    bet: 'Bet',
+    players: 'Players',
+    join: 'Join',
+    noRoomsMessage: 'No rooms yet. Create your first table!',
   },
   footer: {
     aboutTitle: 'ABOUT THE PLATFORM',
@@ -76,7 +77,7 @@ export const en = {
     uploadFile: 'Upload File',
     changePassword: 'Change Password',
   },
-  main:{
-    luck:'Try your luck',
+  main: {
+    luck: 'Try your luck',
   }
-};
+}

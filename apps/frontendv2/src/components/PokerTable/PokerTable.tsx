@@ -1,100 +1,110 @@
-import { FaUser } from 'react-icons/fa'
+import { useGameState } from './useGameState'
+import TableBackground from './TableBackground'
+import CommunityCards from './CommunityCards'
+import Pot from './Pot'
+import FancySeat from './FancySeat'
+import ActionPanel from './ActionPanel'
+import axios from 'axios'
 
-const players = [
-    { id: 1, name: 'AI-Aggro', balance: 990 },
-    { id: 2, name: 'StackZilla', balance: 1520 },
-    { id: 3, name: 'YOU', balance: 1400, isSelf: true },
-    { id: 4, name: 'FoldBot', balance: 650 },
-    { id: 5, name: 'Neo', balance: 1250 },
-    { id: 6, name: 'BluffQueen', balance: 980 },
-]
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const PokerTable = () => {
-    const playerPositions = [
-        'top-left',
-        'top-center',
-        'bottom-center',
-        'bottom-left',
-        'top-right',
-        'bottom-right',
-    ]
+    const { gameState } = useGameState()
+    const seatCount = gameState.players.length
+    const roomId = gameState.roomId
+    const status = gameState.status as string
+
+    const currentUserId = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('userId='))
+        ?.split('=')[1]
+
+    const isOwner = gameState.players[0]?.id === currentUserId
+
+    const radiusX = 370
+    const radiusY = 230
+
+    const handleStartGame = async () => {
+        try {
+            const token = localStorage.getItem('accessToken')
+            if (!token || !roomId) {
+                console.error('❌ Нет токена или roomId')
+                return
+            }
+
+            await axios.post(`${API_URL}/room/start-game`, { roomID: roomId }, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+
+            console.log('✅ Игра запущена')
+
+            await axios.post(`${API_URL}/room/deal-cards`, { roomID: roomId }, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+
+            console.log('🃏 Карты розданы')
+        } catch (err) {
+            console.error('Ошибка при старте игры или раздаче карт:', err)
+        }
+    }
 
     return (
-        <div className="relative w-full max-w-[1100px] aspect-[2/1] mx-auto my-8">
-            {/* Table */}
-            <div className="absolute inset-0 rounded-full border-[10px] border-pink-500 bg-green-700 shadow-[0_0_60px_rgba(255,0,128,0.5)]" />
+        <div className="relative w-full h-screen bg-black overflow-visible flex items-center justify-center">
+            <TableBackground />
 
-            {/* Pot */}
-            <div className="absolute top-[41%] left-1/2 -translate-x-1/2 text-yellow-400 font-semibold text-lg">
-                🪙 Pot: <span className="font-bold">$2050</span>
+            {/* Центр: карты и банк */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
+                <div className="relative flex flex-col items-center">
+                    <div className="flex justify-center gap-2">
+                        <CommunityCards cards={gameState.communityCards} />
+                    </div>
+                    <div
+                        className="absolute top-full mt-2"
+                        style={{ left: '50%', transform: 'translate(-54%, 0)' }}
+                    >
+                        <Pot amount={gameState.pot} />
+                    </div>
+                </div>
             </div>
 
-            {/* Community Cards */}
-            <div className="absolute top-[50%] left-1/2 -translate-x-1/2 flex gap-3">
-                {Array(5)
-                    .fill(0)
-                    .map((_, idx) => (
-                        <div
-                            key={idx}
-                            className="w-12 h-16 bg-white rounded-lg shadow-md border border-gray-300"
-                        />
-                    ))}
-            </div>
+            {/* Стол */}
+            <div className="w-[900px] h-[500px] rounded-full bg-gradient-to-br from-green-900 to-black border-4 border-green-700 shadow-[0_0_60px_#00ff7f55] relative z-10 flex flex-col items-center justify-center" />
 
-            {/* Players */}
-            {players.map((player, index) => {
-                const position = playerPositions[index]
-                const baseStyle = 'absolute flex flex-col items-center z-10'
-
-                const posStyle = {
-                    'top-left': 'top-10 left-16',
-                    'top-center': 'top-4 left-1/2 -translate-x-1/2',
-                    'top-right': 'top-10 right-16',
-                    'bottom-left': 'bottom-28 left-16',
-                    'bottom-right': 'bottom-28 right-16',
-                    'bottom-center': 'bottom-12 left-1/2 -translate-x-1/2',
-                }
+            {/* Игроки */}
+            {gameState.players.map((player, index) => {
+                const angleDeg = (360 / seatCount) * index - 90
+                const angleRad = (angleDeg * Math.PI) / 180
+                const x = radiusX * Math.cos(angleRad)
+                const y = radiusY * Math.sin(angleRad)
 
                 return (
                     <div
                         key={player.id}
-                        className={`${baseStyle} ${posStyle[position as keyof typeof posStyle]}`}
+                        className="absolute z-30"
+                        style={{
+                            left: `calc(50% + ${x}px)`,
+                            top: `calc(50% + ${y}px)`,
+                            transform: 'translate(-50%, -50%)',
+                        }}
                     >
-                        {/* Avatar */}
-                        <div
-                            className={`w-14 h-14 rounded-full border-4 ${
-                                player.isSelf ? 'border-pink-500' : 'border-white'
-                            } flex items-center justify-center text-sm font-bold bg-black text-white shadow-md mb-2`}
-                        >
-                            <FaUser className="text-white" />
-                        </div>
-
-                        {/* Info */}
-                        <div className="text-sm font-semibold text-white">{player.name}</div>
-                        <div className="text-xs text-green-300">${player.balance}</div>
-
-                        {/* Player hand */}
-                        {player.isSelf && (
-                            <div className="flex gap-3 mt-3">
-                                <div className="w-12 h-16 bg-white rounded shadow-md border border-gray-300" />
-                                <div className="w-12 h-16 bg-white rounded shadow-md border border-gray-300" />
-                            </div>
-                        )}
+                        <FancySeat player={player} isYou={index === 0} index={index} />
                     </div>
                 )
             })}
 
-            {/* Action Buttons */}
-            <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 flex gap-6">
-                {['Check', 'Call', 'Raise'].map((action) => (
+            <ActionPanel />
+
+            {/* Кнопка запуска — только для владельца и если игра ещё не началась */}
+            {status !== 'playing' && isOwner && (
+                <div className="absolute bottom-6 z-50">
                     <button
-                        key={action}
-                        className="bg-pink-600 hover:bg-pink-500 text-white px-6 py-2 rounded-full font-semibold shadow-lg transition"
+                        onClick={handleStartGame}
+                        className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-lg shadow-lg transition"
                     >
-                        {action}
+                        Начать игру
                     </button>
-                ))}
-            </div>
+                </div>
+            )}
         </div>
     )
 }
