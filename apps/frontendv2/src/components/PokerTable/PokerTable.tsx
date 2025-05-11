@@ -6,7 +6,7 @@ import FancySeat from './FancySeat'
 import ActionPanel from './ActionPanel'
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
 
 const PokerTable = () => {
     const { gameState } = useGameState()
@@ -33,13 +33,13 @@ const PokerTable = () => {
             }
 
             await axios.post(`${API_URL}/room/start-game`, { roomID: roomId }, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `${token}` },
             })
 
             console.log('✅ Игра запущена')
 
             await axios.post(`${API_URL}/room/deal-cards`, { roomID: roomId }, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `${token}` },
             })
 
             console.log('🃏 Карты розданы')

@@ -31,26 +31,35 @@ func NewRoomService(repo *repo.RoomRepo, logger *zap.Logger, client client.Clien
 }
 
 func (s *RoomService) CreateRoom(ctx context.Context, req dto.CreateRoomRequest) (string, error) {
+	roomID := uuid.New().String()
 	room := &database.Room{
-		RoomID:     uuid.New().String(),
+		Name:       req.Name,
+		RoomID:     roomID,
 		MaxPlayers: req.MaxPlayers,
 		Limits:     req.Limits,
 		Type:       req.Type,
 		Status:     "waiting",
 	}
-	RoomID := uuid.New().String()
 	if err := s.repo.CreateRoom(room); err != nil {
-		return "", err
+		return "error creating room: ", err
 	}
 
 	_, err := s.client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
-		ID:        "room_" + RoomID,
+		ID:        "room_" + roomID,
 		TaskQueue: "room-task-queue",
-	}, room_temporal.StartRoomWorkflow, RoomID)
+	}, room_temporal.StartRoomWorkflow, roomID)
 
-	return RoomID, err
+	return roomID, err
 }
 
 func (s *RoomService) UpdateRoomStatus(roomID, status string) error {
 	return s.repo.UpdateRoomStatus(roomID, status)
+}
+
+func (s *RoomService) GetRooms() ([]database.Room, error) {
+	r, e := s.repo.GetWaitingRooms()
+	if e != nil {
+		return nil, e
+	}
+	return r, nil
 }

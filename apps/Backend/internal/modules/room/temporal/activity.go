@@ -2,7 +2,9 @@ package room_temporal
 
 import (
 	"context"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
+	"go.uber.org/zap"
 	"log"
 	"poker/internal/modules/room/manager"
 	"time"
@@ -35,6 +37,23 @@ func sendToAllPlayers(ctx workflow.Context, roomID string, players map[string]bo
 }
 
 func DisconnectAllUsersActivity(ctx context.Context, roomID string) error {
+
+	logger := activity.GetLogger(ctx)
+	logger.Info("🔌 DisconnectAllUsersActivity started", zap.String("roomID", roomID))
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("🔥 Panic in DisconnectAllUsersActivity", zap.Any("panic", r))
+		}
+	}()
+
+	users := manager.Manager.GetUsersInRoom(roomID)
+	if len(users) == 0 {
+		logger.Warn("⚠️ No users found to disconnect", zap.String("roomID", roomID))
+		return nil
+	}
+
 	manager.Manager.DisconnectAll(roomID)
+	logger.Info("✅ All users disconnected", zap.String("roomID", roomID))
 	return nil
 }

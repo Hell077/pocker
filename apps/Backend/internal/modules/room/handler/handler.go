@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
+
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"poker/internal/modules/room/dto"
@@ -74,7 +75,7 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 
 // JoinRoom godoc
 // @Summary      Подключение к комнате по WebSocket
-// @Description  Устанавливает WebSocket-соединение с покерной комнатой. Требуется `roomID` и `userID` как query-параметры.
+// @Description  Устанавливает WebSocket-соединение с покерной комнатой. Требуется `roomID` как query-параметр.
 // @Tags         Room
 // @Produce      plain
 // @Param        roomID  query  string  true  "ID комнаты"
@@ -85,14 +86,14 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 // @Router       /room/ws [get]
 // @Security BearerAuth
 func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
+
 	defer func() {
 		h.logger.Info("🔌 Disconnected", zap.String("remote", c.RemoteAddr().String()))
 		manager.Manager.Remove(roomID, userID)
 		_ = c.Close()
 	}()
-
-	if roomID == "" || userID == "" {
-		_ = c.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
+	if roomID == "" {
+		_ = c.WriteMessage(websocket.TextMessage, []byte("Missing roomID"))
 		h.logger.Warn("❗ missing required fields", zap.String("roomID", roomID), zap.String("userID", userID))
 		return errors.New("missing required fields")
 	}
@@ -282,4 +283,44 @@ func (h *RoomHandler) DealCards(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "cards dealt"})
+}
+
+// AvailableRoomList godoc
+// @Summary Получить список доступных комнат
+// @Description Возвращает список комнат со статусом "waiting"
+// @Tags Room
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.AvailableRoomListResponse
+// @Failure 500 {object} fiber.Map
+// @Router /room/list [get]
+// @Security BearerAuth
+func (h *RoomHandler) AvailableRoomList(c *fiber.Ctx) error {
+	rooms, err := h.service.GetRooms()
+	if err != nil {
+		h.logger.Error("Failed to fetch waiting rooms", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to fetch rooms",
+		})
+	}
+	return c.JSON(fiber.Map{
+		"rooms": rooms,
+	})
+}
+
+func (h *RoomHandler) TerminateRoom(c *fiber.Ctx) error {
+	var req dto.TerminateGameRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+	}
+	if err := h.service.UpdateRoomStatus(req.RoomID, "terminated"); err != nil {
+		h.logger.Error("failed to update room", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "internal error"})
+	}
+	err := h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "terminate-game", room_temporal.TerminateGameSignal{})
+	if err != nil {
+		h.logger.Error("❌ Failed to signal terminate-game", zap.Error(err))
+		return c.Status(500).JSON(fiber.Map{"error": "temporal error"})
+	}
+	return c.JSON(fiber.Map{"message": "game has terminate successfully"})
 }

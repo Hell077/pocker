@@ -21,6 +21,7 @@ type LeaveRoomSignal struct {
 	UserID string
 }
 
+type TerminateGameSignal struct{}
 type PlayerMoveSignal struct {
 	UserID string
 	Action string
@@ -64,6 +65,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	joinChan := workflow.GetSignalChannel(ctx, "join-room")
 	leaveChan := workflow.GetSignalChannel(ctx, "leave-room")
 	moveChan := workflow.GetSignalChannel(ctx, "player-move")
+	terminateChan := workflow.GetSignalChannel(ctx, "terminate-game")
 
 	tick := time.Minute * 2
 
@@ -73,8 +75,12 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		}
 		return GetAvailableActions(state, userID), nil
 	})
+	var shouldTerminate bool
 
 	for {
+		if shouldTerminate {
+			break
+		}
 		selector := workflow.NewSelector(ctx)
 
 		selector.AddReceive(startGameChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -251,6 +257,20 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			}
 		})
 
+		selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, _ bool) {
+			var s TerminateGameSignal
+			c.Receive(ctx, &s)
+
+			logger.Info("Terminate")
+
+			sendToAllPlayers(ctx, state.RoomID, state.Players, "🚫 Игра остановлена администратором")
+
+			state.GameStarted = false
+			state.RoundStage = "ended"
+
+			shouldTerminate = true
+		})
+
 		selector.AddFuture(workflow.NewTimer(ctx, tick), func(f workflow.Future) {
 			logger.Info("⏰ Tick", "players", len(state.Players))
 		})
@@ -280,8 +300,13 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 
 	logger.Info("📴 Disconnecting all users from the room...")
 
-	if err := workflow.ExecuteActivity(ctx, DisconnectAllUsersActivity, state.RoomID).Get(ctx, nil); err != nil {
-		logger.Error("❌ Failed to disconnect users", "err", err)
+	if len(state.Players) > 0 {
+		err := workflow.ExecuteActivity(ctx, DisconnectAllUsersActivity, state.RoomID).Get(ctx, nil)
+		if err != nil {
+			logger.Error("❌ Failed to disconnect users", "err", err)
+		}
+	} else {
+		logger.Info("ℹ️ No players to disconnect")
 	}
 
 	logger.Info("🏁 Game ended. Terminating workflow...")
