@@ -11,11 +11,11 @@ const language = localStorage.getItem('lang') || 'en';
 const lang = language === 'ru' ? ru : en;
 
 interface Room {
+  Name:string
   RoomID: string
   Status: string
   MaxPlayers?: number
 }
-
 
 export default function LobbyContent() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -103,14 +103,15 @@ export default function LobbyContent() {
         <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6 px-4 mb-12">
           {rooms.map((room: Room) => (
             <div key={room.RoomID} className="bg-black border border-pink-500 rounded-xl p-4 shadow-lg flex flex-col gap-2">
-              <p className="text-lg font-semibold text-pink-400">ID: {room.RoomID}</p>
-              <p className="text-gray-300 text-sm">Статус: {room.Status}</p>
-              <p className="text-gray-400 text-sm">Макс. игроков: {room.MaxPlayers || 'не указано'}</p>
+              <p className="text-lg font-semibold text-pink-400">{room.Name}</p>
+              <p className="text-gray-300 text-sm">{lang.lobby.ID} {room.RoomID}</p>
+              <p className="text-gray-400 text-sm">{lang.lobby.Status} {room.Status}</p>
+              <p className="text-gray-400 text-sm">{lang.lobby.maxPlayers} {room.MaxPlayers }</p>
               <button
                 onClick={() => handleConnectRoom(room.RoomID)}
                 className="mt-2 bg-pink-600 hover:bg-pink-700 text-white py-1 px-4 rounded-lg text-sm font-medium transition"
               >
-                Подключиться
+                {lang.lobby.Connect}
               </button>
             </div>
           ))}

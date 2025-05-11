@@ -27,6 +27,10 @@ export const ru = {
     players: 'Игроков',
     join: 'Войти',
     noRoomsMessage: 'Пока нет комнат. Создайте свой первый стол!',
+    maxPlayers:'Макс. игроков:',
+    ID: 'ID:',
+    Status:'Статус:',
+    Connect:'Подключиться'
   },
   connectRoomModal: {
     title: 'Подключиться к комнате',

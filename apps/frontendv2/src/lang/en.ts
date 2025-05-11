@@ -27,6 +27,10 @@ export const en = {
     join: 'Join',
     noRoomsMessage: 'No rooms yet. Create your first table!',
     connectRoomButton:'Connect to the room',
+    maxPlayers: 'Max players:',
+    ID: 'ID:',
+    Status:'Status:',
+    Connect:'Connect'
   },
   connectRoomModal: {
     title: 'Join Room',

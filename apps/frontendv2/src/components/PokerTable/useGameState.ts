@@ -21,7 +21,6 @@ export interface GameState {
     status: string
 }
 
-// Адрес API и WebSocket
 const API_URL = 'http://localhost:3000/api'
 const WS_BASE = WS_URL
 
