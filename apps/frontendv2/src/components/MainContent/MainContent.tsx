@@ -7,7 +7,7 @@ export default function MainContent() {
   const language = localStorage.getItem('lang') || 'en';
   const lang = language === 'ru' ? ru : en;
   const handlePlayClick = () => {
-    console.log('Play clicked');
+    navigate('/lobby')
   };
 
   const handleFortuneClick = () => {

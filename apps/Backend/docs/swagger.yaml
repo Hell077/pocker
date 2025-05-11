@@ -3,6 +3,14 @@ definitions:
   fiber.Map:
     additionalProperties: true
     type: object
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
   internal_modules_auth_handler.RefreshTokenRequest:
     properties:
       refresh_token:
@@ -29,6 +37,8 @@ definitions:
     type: object
   poker_internal_modules_auth_dto.Me:
     properties:
+      balance:
+        type: integer
       email:
         type: string
       id:
@@ -53,6 +63,13 @@ definitions:
       cooldown_seconds:
         type: integer
     type: object
+  poker_internal_modules_room_dto.AvailableRoomListResponse:
+    properties:
+      rooms:
+        items:
+          $ref: '#/definitions/poker_packages_database.Room'
+        type: array
+    type: object
   poker_internal_modules_room_dto.CreateRoomRequest:
     properties:
       limits:
@@ -62,6 +79,8 @@ definitions:
         maximum: 10
         minimum: 2
         type: integer
+      name:
+        type: string
       type:
         description: '"cash", "sitngo", "mtt"'
         type: string
@@ -72,14 +91,15 @@ definitions:
     properties:
       activity:
         type: string
-      roomID:
+      args:
+        description: "\U0001F195 добавь это поле"
+        items:
+          type: string
+        type: array
+      room_id:
         type: string
-      userID:
+      user_id:
         type: string
-    required:
-    - activity
-    - roomID
-    - userID
     type: object
   poker_internal_modules_room_dto.StartGameRequest:
     properties:
@@ -98,6 +118,39 @@ definitions:
         type: string
       win_rate:
         type: number
+    type: object
+  poker_packages_database.Account:
+    properties:
+      accountBalance:
+        $ref: '#/definitions/poker_packages_database.AccountBalance'
+      avatarLink:
+        type: string
+      createdAt:
+        type: integer
+      email:
+        type: string
+      id:
+        type: string
+      password:
+        type: string
+      role:
+        description: user / admin / moderator
+        type: string
+      updatedAt:
+        type: integer
+      username:
+        type: string
+    type: object
+  poker_packages_database.AccountBalance:
+    properties:
+      currentBalance:
+        type: string
+      id:
+        type: string
+      user:
+        $ref: '#/definitions/poker_packages_database.Account'
+      userID:
+        type: string
     type: object
   poker_packages_database.CurrentDayRewardItem:
     properties:
@@ -120,6 +173,36 @@ definitions:
         type: string
       userID:
         type: string
+    type: object
+  poker_packages_database.Room:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: integer
+      limits:
+        description: например "1/2", "5/10"
+        type: string
+      maxPlayers:
+        type: integer
+      name:
+        type: string
+      roomID:
+        type: string
+      status:
+        description: waiting / playing / finished
+        type: string
+      type:
+        description: '"cash" / "sitngo" / "mtt"'
+        type: string
+      updatedAt:
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/poker_packages_database.Account'
+        type: array
     type: object
 info:
   contact: {}
@@ -415,6 +498,27 @@ paths:
       summary: Раздача карт
       tags:
       - Room
+  /room/list:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список комнат со статусом "waiting"
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/poker_internal_modules_room_dto.AvailableRoomListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/fiber.Map'
+      security:
+      - BearerAuth: []
+      summary: Получить список доступных комнат
+      tags:
+      - Room
   /room/start-game:
     post:
       consumes:
@@ -444,7 +548,7 @@ paths:
   /room/ws:
     get:
       description: Устанавливает WebSocket-соединение с покерной комнатой. Требуется
-        `roomID` и `userID` как query-параметры.
+        `roomID` как query-параметр.
       parameters:
       - description: ID комнаты
         in: query

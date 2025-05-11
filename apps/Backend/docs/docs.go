@@ -468,6 +468,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/room/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список комнат со статусом \"waiting\"",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Получить список доступных комнат",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/poker_internal_modules_room_dto.AvailableRoomListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    }
+                }
+            }
+        },
         "/room/start-game": {
             "post": {
                 "security": [
@@ -517,7 +551,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Устанавливает WebSocket-соединение с покерной комнатой. Требуется ` + "`" + `roomID` + "`" + ` и ` + "`" + `userID` + "`" + ` как query-параметры.",
+                "description": "Устанавливает WebSocket-соединение с покерной комнатой. Требуется ` + "`" + `roomID` + "`" + ` как query-параметр.",
                 "produces": [
                     "text/plain"
                 ],
@@ -613,6 +647,18 @@ const docTemplate = `{
             "type": "object",
             "additionalProperties": true
         },
+        "gorm.DeletedAt": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
         "internal_modules_auth_handler.RefreshTokenRequest": {
             "type": "object",
             "properties": {
@@ -651,6 +697,9 @@ const docTemplate = `{
         "poker_internal_modules_auth_dto.Me": {
             "type": "object",
             "properties": {
+                "balance": {
+                    "type": "integer"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -687,6 +736,17 @@ const docTemplate = `{
                 }
             }
         },
+        "poker_internal_modules_room_dto.AvailableRoomListResponse": {
+            "type": "object",
+            "properties": {
+                "rooms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/poker_packages_database.Room"
+                    }
+                }
+            }
+        },
         "poker_internal_modules_room_dto.CreateRoomRequest": {
             "type": "object",
             "required": [
@@ -702,6 +762,9 @@ const docTemplate = `{
                     "maximum": 10,
                     "minimum": 2
                 },
+                "name": {
+                    "type": "string"
+                },
                 "type": {
                     "description": "\"cash\", \"sitngo\", \"mtt\"",
                     "type": "string"
@@ -710,19 +773,21 @@ const docTemplate = `{
         },
         "poker_internal_modules_room_dto.PlayerActionRequest": {
             "type": "object",
-            "required": [
-                "activity",
-                "roomID",
-                "userID"
-            ],
             "properties": {
                 "activity": {
                     "type": "string"
                 },
-                "roomID": {
+                "args": {
+                    "description": "🆕 добавь это поле",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "room_id": {
                     "type": "string"
                 },
-                "userID": {
+                "user_id": {
                     "type": "string"
                 }
             }
@@ -752,6 +817,56 @@ const docTemplate = `{
                 },
                 "win_rate": {
                     "type": "number"
+                }
+            }
+        },
+        "poker_packages_database.Account": {
+            "type": "object",
+            "properties": {
+                "accountBalance": {
+                    "$ref": "#/definitions/poker_packages_database.AccountBalance"
+                },
+                "avatarLink": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "role": {
+                    "description": "user / admin / moderator",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "poker_packages_database.AccountBalance": {
+            "type": "object",
+            "properties": {
+                "currentBalance": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/poker_packages_database.Account"
+                },
+                "userID": {
+                    "type": "string"
                 }
             }
         },
@@ -786,6 +901,50 @@ const docTemplate = `{
                 },
                 "userID": {
                     "type": "string"
+                }
+            }
+        },
+        "poker_packages_database.Room": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "limits": {
+                    "description": "например \"1/2\", \"5/10\"",
+                    "type": "string"
+                },
+                "maxPlayers": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "roomID": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "waiting / playing / finished",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"cash\" / \"sitngo\" / \"mtt\"",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/poker_packages_database.Account"
+                    }
                 }
             }
         }

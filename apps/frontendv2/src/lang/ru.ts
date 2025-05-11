@@ -12,7 +12,6 @@ export const ru = {
     load_rewards_error: (err: unknown) => `Не удалось загрузить список наград: ${err}`,
     invalid_data_format: 'Неверный формат данных',
   },
-
   nav: {
     lobby: 'Лобби',
     leaderboard: 'Лидерборд',
@@ -23,16 +22,32 @@ export const ru = {
     pokerLobby: 'Покерное лобби',
     createTableDescription: 'Выбери настройки и создай стол',
     createRoomButton: 'Создать комнату',
-    bet:'Ставка',
-    players:'Игроков',
-    join:'Войти'
+    connectRoomButton:'Подключиться к комнате',
+    bet: 'Ставка',
+    players: 'Игроков',
+    join: 'Войти',
+    noRoomsMessage: 'Пока нет комнат. Создайте свой первый стол!',
+  },
+  connectRoomModal: {
+    title: 'Подключиться к комнате',
+    roomIdPlaceholder: 'Введите ID комнаты',
+    connectButton: 'Подключиться',
+    toastEmptyRoomId: 'Введите ID комнаты',
   },
   createRoomModal: {
     title: 'Создать комнату',
     roomNamePlaceholder: 'Название комнаты',
     playersCountLabel: 'Количество игроков:',
-    stakesLabel: 'Ставка:',
+    smallBlind: 'Малый блайнд:',
+    bigBlind: 'Большой блайнд:',
+    gameTypeLabel: 'Тип игры:',
+    gameType_cash: 'Кэш',
+    gameType_sitngo: 'Sit & Go',
+    gameType_mtt: 'MTT',
     createButton: 'Создать комнату',
+    toastInvalidForm: 'Проверьте корректность введённых данных',
+    toastCreateError: 'Не удалось создать комнату. Попробуйте позже.',
+    toastCreated: 'Комната успешно создана!',
   },
   footer: {
     aboutTitle: 'О ПЛАТФОРМЕ',
@@ -56,7 +71,6 @@ export const ru = {
     nicknameHeader: 'Никнейм',
     eloHeader: 'ELO',
     load_error: (err: unknown) => `Ошибка загрузки лидерборда: ${err}`,
-
   },
   profile: {
     logout: 'Выйти',
@@ -78,7 +92,7 @@ export const ru = {
     uploadFile: 'Загрузить файл',
     changePassword: 'Изменить пароль',
   },
-  main:{
-    luck:'Испытай удачу'
+  main: {
+    luck: 'Испытай удачу',
   }
-};
+}

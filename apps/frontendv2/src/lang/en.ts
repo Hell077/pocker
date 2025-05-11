@@ -22,9 +22,17 @@ export const en = {
     pokerLobby: 'Poker Lobby',
     createTableDescription: 'Choose settings and create a table',
     createRoomButton: 'Create Room',
-    bet:'Bet',
-    players:'Players',
-    join:'Join'
+    bet: 'Bet',
+    players: 'Players',
+    join: 'Join',
+    noRoomsMessage: 'No rooms yet. Create your first table!',
+    connectRoomButton:'Connect to the room',
+  },
+  connectRoomModal: {
+    title: 'Join Room',
+    roomIdPlaceholder: 'Enter Room ID',
+    connectButton: 'Join',
+    toastEmptyRoomId: 'Please enter a Room ID',
   },
   footer: {
     aboutTitle: 'ABOUT THE PLATFORM',
@@ -51,10 +59,18 @@ export const en = {
   },
   createRoomModal: {
     title: 'Create Room',
-    roomNamePlaceholder: 'Room name',
+    roomNamePlaceholder: 'Room Name',
     playersCountLabel: 'Number of players:',
-    stakesLabel: 'Stakes:',
+    smallBlind: 'Small Blind:',
+    bigBlind: 'Big Blind:',
+    gameTypeLabel: 'Game Type:',
+    gameType_cash: 'Cash',
+    gameType_sitngo: 'Sit & Go',
+    gameType_mtt: 'MTT',
     createButton: 'Create Room',
+    toastInvalidForm: 'Please check the form for errors',
+    toastCreateError: 'Failed to create room. Please try again later.',
+    toastCreated: 'Room created successfully!',
   },
   profile: {
     logout: 'Logout',
@@ -76,7 +92,7 @@ export const en = {
     uploadFile: 'Upload File',
     changePassword: 'Change Password',
   },
-  main:{
-    luck:'Try your luck',
+  main: {
+    luck: 'Try your luck',
   }
-};
+}
