@@ -1,32 +1,26 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { winnerBannerVariants } from './animations'
-import type { Player } from './useGameState'
 
-interface WinnerBannerProps {
-    winnerId: string | null
-    players: Player[]
+import { useEffect, useState } from 'react'
+import winSound from './assets/sounds/win.mp3'
+
+interface Props {
+  winnerName: string
 }
 
-const WinnerBanner = ({ winnerId, players }: WinnerBannerProps) => {
-    const winner = players.find((p) => p.id === winnerId)
+export default function WinnerBanner({ winnerName }: Props) {
+  const [visible, setVisible] = useState(false)
 
-    return (
-        <AnimatePresence>
-            {winner && (
-                <motion.div
-                    className="absolute top-1/4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-700 via-pink-500 to-yellow-400 shadow-2xl border border-yellow-300"
-                    variants={winnerBannerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                >
-                    <p className="text-white font-extrabold text-2xl animate-pulse">
-                        🎉 {winner.nickname} wins the pot! 🎉
-                    </p>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    )
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 500)
+    const sound = new Audio(winSound)
+    sound.play()
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 text-center text-yellow-400 text-4xl font-bold animate-bounce">
+      🥇 {winnerName} Wins!
+    </div>
+  )
 }
-
-export default WinnerBanner
