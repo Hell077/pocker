@@ -6,6 +6,8 @@ import (
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
+	"poker/internal/modules/room/repo"
+	"poker/packages/database"
 	"strings"
 	"time"
 )
@@ -310,6 +312,11 @@ func terminateGame(ctx workflow.Context, state *RoomState, logger log.Logger) {
 		}
 	} else {
 		logger.Info("ℹ️ No players to disconnect")
+	}
+	rr := repo.NewRoomRepo(database.DB)
+	err := rr.UpdateRoomStatus(state.RoomID, "Done")
+	if err != nil {
+		return
 	}
 
 	logger.Info("🏁 Game ended. Terminating workflow...")
