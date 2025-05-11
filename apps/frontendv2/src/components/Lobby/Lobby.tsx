@@ -56,7 +56,6 @@ export default function LobbyContent() {
       return;
     }
 
-    // ✅ Гарантированно добавляем `?` перед query-параметрами
     const connector = WS_URL.includes('?') ? '&' : '?';
     const wsURL = `${WS_URL}${connector}roomID=${roomId}&token=${token}`;
 
