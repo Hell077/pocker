@@ -59,7 +59,7 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	roomID, err := h.service.CreateRoom(ctx, dto.CreateRoomRequest{})
+	roomID, err := h.service.CreateRoom(ctx, req)
 	if err != nil {
 		h.logger.Error("Failed to create room", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

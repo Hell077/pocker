@@ -2,6 +2,7 @@ package room_temporal
 
 import (
 	"fmt"
+	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
@@ -47,7 +48,7 @@ type RoomState struct {
 	BoardCards    []string
 	RoundStage    string
 	HasActed      map[string]bool
-	PlayerBets    map[string]int64 // сколько поставил игрок в текущем раунде
+	PlayerBets    map[string]int64
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
@@ -288,7 +289,11 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			logger.Info("🔄 Player rejoined, continue loop")
 		}
 	}
+	terminateGame(ctx, state, logger)
+	return nil
+}
 
+func terminateGame(ctx workflow.Context, state *RoomState, logger log.Logger) {
 	logger.Info("💾 Saving history")
 
 	ao := workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Second}
@@ -297,8 +302,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	if err := workflow.ExecuteActivity(ctx, SaveGameHistoryActivity, state).Get(ctx, nil); err != nil {
 		logger.Error("❌ Failed to save history", "err", err)
 	}
-
-	logger.Info("📴 Disconnecting all users from the room...")
 
 	if len(state.Players) > 0 {
 		err := workflow.ExecuteActivity(ctx, DisconnectAllUsersActivity, state.RoomID).Get(ctx, nil)
@@ -310,7 +313,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	}
 
 	logger.Info("🏁 Game ended. Terminating workflow...")
-	return nil
 }
 
 func NextTurn(ctx workflow.Context, state *RoomState) {

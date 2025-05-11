@@ -136,6 +136,7 @@ export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
                   <input
                     type="number"
                     min={1}
+                    max={5}
                     value={smallBlind}
                     onChange={(e) => setSmallBlind(Number(e.target.value))}
                     className="w-full bg-black border border-pink-500 rounded-lg px-4 py-2 outline-none text-white placeholder-gray-400"
