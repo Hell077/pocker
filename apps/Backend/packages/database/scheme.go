@@ -31,7 +31,8 @@ type Room struct {
 	Limits     string    // например "1/2", "5/10"
 	Type       string    // "cash" / "sitngo" / "mtt"
 	Users      []Account `gorm:"many2many:room_users;"`
-	Status     string    `gorm:"default:waiting"` // waiting / playing / finished
+	Name       string
+	Status     string `gorm:"default:waiting"` // waiting / playing / finished
 }
 
 type GamePlayer struct {

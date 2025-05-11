@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
 import { en } from '@lang/en.ts'
 import { ru } from '@lang/ru.ts'
+import { API_URL } from '@/env/api.ts'
+import { useToast } from '@hooks/useToast'
 
 const language = localStorage.getItem('lang') || 'en'
 const lang = language === 'ru' ? ru : en
@@ -9,21 +11,79 @@ const lang = language === 'ru' ? ru : en
 interface Props {
     isOpen: boolean
     onClose: () => void
-    onCreate: (room: { name: string; maxPlayers: number; stakes: number }) => void
+    onCreate: (roomId: string) => void
 }
 
-export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
-    const [name, setName] = useState('')
-    const [maxPlayers, setMaxPlayers] = useState(2)
-    const [stakes, setStakes] = useState(100)
+const GAME_TYPES = ['cash', 'sitngo', 'mtt'] as const
+type GameType = typeof GAME_TYPES[number]
 
-    const handleSubmit = () => {
-        if (!name.trim() || maxPlayers < 2 || maxPlayers > 5 || !stakes) return
-        onCreate({ name: name.trim(), maxPlayers, stakes })
-        onClose()
-        setName('')
-        setMaxPlayers(2)
-        setStakes(100)
+export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
+    const [roomName, setRoomName] = useState('')
+    const [maxPlayers, setMaxPlayers] = useState(2)
+    const [smallBlind, setSmallBlind] = useState(1)
+    const [bigBlind, setBigBlind] = useState(2)
+    const [gameType, setGameType] = useState<GameType>('cash')
+    const toast = useToast()
+
+    const handleSubmit = async () => {
+        if (
+          !roomName.trim() ||
+          maxPlayers < 2 ||
+          maxPlayers > 5 ||
+          smallBlind <= 0 ||
+          bigBlind <= smallBlind
+        ) {
+            toast.error(lang.createRoomModal.toastInvalidForm || 'Проверьте корректность введённых данных')
+            return
+        }
+
+        try {
+            const token = localStorage.getItem('accessToken')
+
+            const res = await fetch(`${API_URL}/room/create-room`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `${token}`,
+                },
+                body: JSON.stringify({
+                    limits: `${smallBlind}/${bigBlind}`,
+                    max_players: maxPlayers,
+                    type: gameType,
+                    name: roomName.trim(),
+                }),
+            })
+
+            const raw = await res.text()
+            console.log('🧾 Response status:', res.status)
+            console.log('📦 Raw response:', raw)
+
+            let data
+            try {
+                data = JSON.parse(raw)
+            } catch {
+                data = {}
+            }
+
+            console.log('✅ Parsed JSON:', data)
+
+            if (!res.ok || !data || !data.room_id) {
+                throw new Error('Ошибка при создании комнаты')
+            }
+
+            toast.success(lang.createRoomModal.toastCreated || 'Комната успешно создана!')
+            onCreate(data.room_id)
+
+            onClose()
+            setRoomName('')
+            setMaxPlayers(2)
+            setSmallBlind(1)
+            setBigBlind(2)
+            setGameType('cash')
+        } catch (err) {
+            console.error('❌ Ошибка при создании комнаты:', err)
+            toast.error(lang.createRoomModal.toastCreateError || 'Не удалось создать комнату. Попробуйте позже.')
+        }
     }
 
     if (!isOpen) return null
@@ -42,18 +102,16 @@ export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
                   {lang.createRoomModal.title}
               </h2>
 
-              {/* Название комнаты */}
               <div className="mb-6">
                   <input
                     type="text"
                     placeholder={lang.createRoomModal.roomNamePlaceholder}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
                     className="w-full bg-black border border-pink-500 rounded-lg px-4 py-2 outline-none text-white placeholder-gray-400"
                   />
               </div>
 
-              {/* Количество игроков */}
               <div className="mb-6">
                   <p className="mb-2 text-sm text-gray-300">{lang.createRoomModal.playersCountLabel}</p>
                   <div className="grid grid-cols-4 gap-2">
@@ -73,27 +131,49 @@ export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
                   </div>
               </div>
 
-              {/* Ставка */}
               <div className="mb-6">
-                  <p className="mb-2 text-sm text-gray-300">{lang.createRoomModal.stakesLabel}</p>
+                  <p className="mb-2 text-sm text-gray-300">{lang.createRoomModal.smallBlind}</p>
+                  <input
+                    type="number"
+                    min={1}
+                    value={smallBlind}
+                    onChange={(e) => setSmallBlind(Number(e.target.value))}
+                    className="w-full bg-black border border-pink-500 rounded-lg px-4 py-2 outline-none text-white placeholder-gray-400"
+                    placeholder="Small Blind"
+                  />
+              </div>
+
+              <div className="mb-6">
+                  <p className="mb-2 text-sm text-gray-300">{lang.createRoomModal.bigBlind}</p>
+                  <input
+                    type="number"
+                    min={smallBlind + 1}
+                    value={bigBlind}
+                    onChange={(e) => setBigBlind(Number(e.target.value))}
+                    className="w-full bg-black border border-pink-500 rounded-lg px-4 py-2 outline-none text-white placeholder-gray-400"
+                    placeholder="Big Blind"
+                  />
+              </div>
+
+              <div className="mb-6">
+                  <p className="mb-2 text-sm text-gray-300">{lang.createRoomModal.gameTypeLabel}</p>
                   <div className="grid grid-cols-3 gap-2">
-                      {[100, 500, 1000, 2500, 5000].map((amount) => (
+                      {GAME_TYPES.map((type) => (
                         <button
-                          key={amount}
-                          onClick={() => setStakes(amount)}
+                          key={type}
+                          onClick={() => setGameType(type)}
                           className={`px-4 py-2 rounded-lg text-sm font-semibold border ${
-                            stakes === amount
+                            gameType === type
                               ? 'bg-pink-600 border-pink-500 text-white'
                               : 'bg-black border-gray-600 text-gray-300'
                           }`}
                         >
-                            {amount}
+                            {lang.createRoomModal[`gameType_${type}` as `gameType_${GameType}`]}
                         </button>
                       ))}
                   </div>
               </div>
 
-              {/* Кнопка создания */}
               <button
                 onClick={handleSubmit}
                 className="w-full py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-semibold transition"
