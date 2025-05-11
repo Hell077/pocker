@@ -1,24 +1,47 @@
-interface ChipStackProps {
-  amount: number
+import gold from '@/assets/chips/gold.png'
+import purple from '@/assets/chips/purple.png'
+import black from '@/assets/chips/black.png'
+import green from '@/assets/chips/green.png'
+import blue from '@/assets/chips/blue.png'
+import red from '@/assets/chips/red.png'
+
+interface Chip {
+  color: string
+  value: number
+  img: string
 }
 
-const ChipStack = ({ amount }: ChipStackProps) => {
-  const chips = Math.floor(amount / 100)
+const chips: Chip[] = [
+  { color: 'gold', value: 1000, img: gold },
+  { color: 'purple', value: 500, img: purple },
+  { color: 'black', value: 100, img: black },
+  { color: 'green', value: 25, img: green },
+  { color: 'blue', value: 10, img: blue },
+  { color: 'red', value: 5, img: red },
+]
+
+export default function ChipStack({ amount }: { amount: number }) {
+  const stack: { img: string; key: string }[] = []
+  let remaining = amount
+  for (const chip of chips) {
+    const count = Math.floor(remaining / chip.value)
+    for (let i = 0; i < count; i++) {
+      stack.push({ img: chip.img, key: chip.color + '-' + i })
+    }
+    remaining %= chip.value
+  }
 
   return (
-    <div className="relative mt-1 flex flex-col items-center">
-      <div className="relative h-4 w-10">
-        {Array.from({ length: Math.min(chips, 5) }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute left-0 w-10 h-4 bg-gradient-to-r from-yellow-400 to-red-500 rounded-full shadow-md"
-            style={{ bottom: `${i * 3}px`, zIndex: i }}
-          />
+      <div className="relative w-10 h-[60px]">
+        {stack.map((chip, index) => (
+            <img
+                key={chip.key}
+                src={chip.img}
+                alt=""
+                className="absolute left-0 w-10 h-10"
+                style={{ bottom: index * 4 }}
+            />
         ))}
       </div>
-      <span className="text-xs text-green-300 font-semibold mt-1">${amount}</span>
-    </div>
   )
 }
-
-export default ChipStack

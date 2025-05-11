@@ -24,7 +24,7 @@ const App: FC = () => {
           <Route path="/leaderboard" element={<ProtectedRoute><LeaderBoardPage /></ProtectedRoute>} />
           <Route path="/lobby" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
           <Route path="/FortuneWheel" element={<ProtectedRoute><FortuneWheel /></ProtectedRoute>} />
-          <Route path="/table/:id" element={<ProtectedRoute><PokerTablePage /></ProtectedRoute>} />
+          <Route path="/table/:id" element={<PokerTablePage />} />
         </Routes>
         <ToastContainer
           position="top-right"

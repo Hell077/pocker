@@ -1,25 +1,22 @@
-import { useEffect } from 'react'
+import flipSoundSrc from '@/assets/sounds/card-flip.mp3'
+import chipSoundSrc from '@/assets/sounds/chips.mp3'
+import winSoundSrc from '@/assets/sounds/win.mp3'
 
-const SoundManager = () => {
-    useEffect(() => {
-        const playSound = (src: string) => {
-            const audio = new Audio(src)
-            audio.volume = 0.5
-            audio.play().catch(() => {})
-        }
+const flipSound = new Audio(flipSoundSrc)
+const chipSound = new Audio(chipSoundSrc)
+const winSound = new Audio(winSoundSrc)
 
-        const handleEvent = (e: CustomEvent<string>) => {
-            playSound(e.detail)
-        }
-
-        window.addEventListener('play-sound', handleEvent as EventListener)
-
-        return () => {
-            window.removeEventListener('play-sound', handleEvent as EventListener)
-        }
-    }, [])
-
-    return null
+export const SoundManager = {
+  playFlip: () => {
+    flipSound.currentTime = 0
+    void flipSound.play().catch(() => {}) // исправление promise
+  },
+  playChips: () => {
+    chipSound.currentTime = 0
+    void chipSound.play().catch(() => {})
+  },
+  playWin: () => {
+    winSound.currentTime = 0
+    void winSound.play().catch(() => {})
+  },
 }
-
-export default SoundManager

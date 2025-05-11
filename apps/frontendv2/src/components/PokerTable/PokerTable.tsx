@@ -4,9 +4,11 @@ import CommunityCards from './CommunityCards'
 import Pot from './Pot'
 import FancySeat from './FancySeat'
 import ActionPanel from './ActionPanel'
+import DealAnimation from './animations/DealAnimation'
+
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const PokerTable = () => {
     const { gameState } = useGameState()
@@ -33,13 +35,13 @@ const PokerTable = () => {
             }
 
             await axios.post(`${API_URL}/room/start-game`, { roomID: roomId }, {
-                headers: { Authorization: `${token}` },
+                headers: { Authorization: `Bearer ${token}` },
             })
 
             console.log('✅ Игра запущена')
 
             await axios.post(`${API_URL}/room/deal-cards`, { roomID: roomId }, {
-                headers: { Authorization: `${token}` },
+                headers: { Authorization: `Bearer ${token}` },
             })
 
             console.log('🃏 Карты розданы')
@@ -50,7 +52,7 @@ const PokerTable = () => {
 
     return (
         <div className="relative w-full h-screen bg-black overflow-visible flex items-center justify-center">
-            <TableBackground />
+            <TableBackground />\n            <DealAnimation players={gameState.players} />
 
             {/* Центр: карты и банк */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
