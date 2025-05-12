@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { WS_URL } from '@/env/api.ts'
+import { API_URL } from '@/env/api.ts'
 
 export interface Player {
     id: string
@@ -32,9 +33,6 @@ interface RawGameState {
 }
 
 
-
-const API_URL = 'http://localhost:3000/api'
-const WS_BASE = WS_URL
 
 function normalizeGameState(payload: RawGameState): Partial<GameState> {
     const players: Player[] = Array.isArray(payload.players)
@@ -134,7 +132,7 @@ export const useGameState = () => {
         if (!roomID || !token) return
         if (wsRef.current) return
 
-        const wsUrl = `${WS_BASE}?roomID=${roomID}&token=${token}`
+        const wsUrl = `${WS_URL}?roomID=${roomID}&token=${token}`
         const ws = new WebSocket(wsUrl)
         wsRef.current = ws
 

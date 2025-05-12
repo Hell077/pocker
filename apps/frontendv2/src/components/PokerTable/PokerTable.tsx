@@ -1,4 +1,4 @@
-import { useGameState } from './useGameState'
+import { useGameContext } from './GameStateContext.tsx';
 import TableBackground from './TableBackground'
 import CommunityCards from './CommunityCards'
 import Pot from './Pot'
@@ -7,11 +7,10 @@ import ActionPanel from './ActionPanel'
 import DealAnimation from './animations/DealAnimation'
 
 import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { API_URL } from '@/env/api.ts';
 
 const PokerTable = () => {
-    const { gameState } = useGameState()
+    const { gameState } = useGameContext()
     const seatCount = gameState.players.length
     const roomId = gameState.roomId
     const status = gameState.status as string
@@ -35,13 +34,13 @@ const PokerTable = () => {
             }
 
             await axios.post(`${API_URL}/room/start-game`, { roomID: roomId }, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `${token}` },
             })
 
             console.log('✅ Игра запущена')
 
             await axios.post(`${API_URL}/room/deal-cards`, { roomID: roomId }, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `${token}` },
             })
 
             console.log('🃏 Карты розданы')
