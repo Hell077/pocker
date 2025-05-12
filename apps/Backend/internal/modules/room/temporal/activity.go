@@ -31,8 +31,17 @@ func sendToAllPlayers(ctx workflow.Context, roomID string, players map[string]bo
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
+	var futures []workflow.Future
+
 	for playerID := range players {
-		_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, message)
+		f := workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, playerID, message)
+		futures = append(futures, f)
+	}
+
+	for i, f := range futures {
+		if err := f.Get(ctx, nil); err != nil {
+			workflow.GetLogger(ctx).Error("Failed to send message", "playerID", i, "err", err)
+		}
 	}
 }
 

@@ -1,11 +1,14 @@
 package room_temporal
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
+	"poker/internal/modules/room/manager"
 	"poker/internal/modules/room/repo"
 	"poker/packages/database"
 	"strings"
@@ -279,7 +282,17 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		})
 
 		selector.Select(ctx)
+		ao := workflow.ActivityOptions{
+			StartToCloseTimeout: 2 * time.Second,
+		}
+		ctx = workflow.WithActivityOptions(ctx, ao)
 
+		input := GameStateActivityInput{
+			RoomID:  state.RoomID,
+			Players: state.Players,
+			State:   *state,
+		}
+		_ = workflow.ExecuteActivity(ctx, SendGameStateActivity, input).Get(ctx, nil)
 		if hasHadPlayers && len(state.Players) == 0 {
 			logger.Info("⌛ No players in room — waiting 30s before shutdown")
 			_ = workflow.Sleep(ctx, 30*time.Second)
@@ -502,4 +515,46 @@ func (m *multiFuture) IsReady() bool {
 		}
 	}
 	return true
+}
+
+type GameStateActivityInput struct {
+	RoomID  string
+	Players map[string]bool
+	State   RoomState
+}
+
+func SendGameStateActivity(ctx context.Context, input GameStateActivityInput) error {
+	message := map[string]interface{}{
+		"type": "update-game-state",
+		"payload": map[string]interface{}{
+			"players":        input.State.PlayerOrder,
+			"pot":            input.State.Pot,
+			"communityCards": input.State.BoardCards,
+			"roomId":         input.State.RoomID,
+			"status":         input.State.RoundStage,
+			"currentTurn":    input.State.CurrentPlayer,
+			"winnerId":       "",
+		},
+	}
+	jsonData, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	for playerID := range input.Players {
+		if err := SendMessage(input.RoomID, playerID, string(jsonData)); err != nil {
+			return fmt.Errorf("failed to send message to %s: %w", playerID, err)
+		}
+	}
+
+	return nil
+}
+
+func SendMessage(roomID, userID, message string) error {
+	conn, ok := manager.Manager.GetConnection(roomID, userID)
+	if !ok {
+		return fmt.Errorf("❌ connection not found for user %s", userID)
+	}
+
+	return conn.WriteMessage(1, []byte(message))
 }

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Player } from '@/types/types' // единый тип
+import { Player } from '@/types/types'
 
 interface DealAnimationProps {
   players: Player[]
@@ -8,8 +8,12 @@ interface DealAnimationProps {
 
 export default function DealAnimation({ players }: DealAnimationProps) {
   const [dealtCards, setDealtCards] = useState<{ playerId: string; cardIndex: number }[]>([])
+  const animationTriggered = useRef(false)
 
   useEffect(() => {
+    if (!players.length || animationTriggered.current) return
+    animationTriggered.current = true
+
     const total = players.length * 2
     let i = 0
 
@@ -25,24 +29,27 @@ export default function DealAnimation({ players }: DealAnimationProps) {
   }, [players])
 
   return (
-      <div className="absolute inset-0 pointer-events-none z-40">
-        {dealtCards.map(({ playerId, cardIndex }, i) => {
-          const angle = (360 / players.length) * players.findIndex(p => p.id === playerId)
-          const radius = 300
-          const rad = (angle - 90) * (Math.PI / 180)
-          const x = Math.cos(rad) * radius
-          const y = Math.sin(rad) * radius + cardIndex * 15
+    <div className="absolute inset-0 pointer-events-none z-40">
+      {dealtCards.map(({ playerId, cardIndex }, i) => {
+        const index = players.findIndex(p => p.id === playerId)
+        if (index === -1) return null
 
-          return (
-              <motion.div
-                  key={playerId + '-' + cardIndex}
-                  initial={{ x: 0, y: 0, opacity: 0, scale: 0.3 }}
-                  animate={{ x, y, opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="absolute left-1/2 top-1/2 w-12 h-16 bg-red-600 rounded-md shadow-lg"
-              />
-          )
-        })}
-      </div>
+        const angle = (360 / players.length) * index
+        const radius = 300
+        const rad = (angle - 90) * (Math.PI / 180)
+        const x = Math.cos(rad) * radius
+        const y = Math.sin(rad) * radius + cardIndex * 15
+
+        return (
+          <motion.div
+            key={playerId + '-' + cardIndex}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0.3 }}
+            animate={{ x, y, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: i * 0.1 }}
+            className="absolute left-1/2 top-1/2 w-12 h-16 bg-red-600 rounded-md shadow-lg"
+          />
+        )
+      })}
+    </div>
   )
 }
