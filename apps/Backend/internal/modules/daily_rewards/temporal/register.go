@@ -31,3 +31,9 @@ func (m *Reward) Register(w worker.Worker) {
 func NewRewardTemporalModule() *Reward {
 	return &Reward{}
 }
+
+type TemporalModule interface {
+	Init(client.Client) error
+	TaskQueue() string
+	Register(w worker.Worker)
+}
