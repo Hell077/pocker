@@ -1,14 +1,16 @@
 package main
 
 import (
+	"context"
 	"go.uber.org/zap"
 	"log"
 	"os"
 	"os/exec"
-	_ "poker/docs"
+	"os/signal"
 	"poker/internal/server"
 	"poker/internal/temporal"
 	"poker/packages/database"
+	"syscall"
 )
 
 // @title Poker API
@@ -19,7 +21,7 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	//logger
+	// logger
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic("unable to initialize zap logger: " + err.Error())
@@ -30,35 +32,55 @@ func main() {
 		runMigrations()
 	}
 
-	//SetupDB
+	// Setup DB
 	database.DbSetup()
 	logger.Info("✅ Database migrated successfully")
 
-	//Temporal Client
+	// Graceful shutdown setup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Trap OS signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Temporal Client
 	temporalClient := temporal.NewClient(logger)
 	if temporalClient == nil {
 		logger.Fatal("❌ Failed to create Temporal client")
 	}
+	defer temporalClient.Close() // Graceful close
 
-	//temporal workers
-	go temporal.StartWorkers(temporalClient)
-	logger.Info("🌀 Temporal workers started")
+	go func() {
+		logger.Info("🌀 Temporal workers started")
+		temporal.StartWorkersWithContext(ctx, temporalClient)
+	}()
 
-	//server
-	logger.Info("🚀 Starting HTTP server on :3000")
-	srv := server.NewServer(database.DB, temporalClient, logger)
+	// Start HTTP server
 	port := os.Getenv("BACK_PORT")
 	if port == "" {
 		port = "3000"
 	}
-	if err := srv.Run(":" + port); err != nil {
-		logger.Fatal("❌ Failed to start server", zap.Error(err))
-	}
 
+	logger.Info("🚀 Starting HTTP server on :" + port)
+	srv := server.NewServer(database.DB, temporalClient, logger)
+
+	go func() {
+		if err := srv.Run(":" + port); err != nil {
+			logger.Fatal("❌ Failed to start server", zap.Error(err))
+		}
+	}()
+
+	<-sigChan
+	logger.Info("Shutdown signal received")
+
+	cancel()
+
+	logger.Info("Server shutdown completed")
 }
 
 func runMigrations() {
-	log.Println("📦 Re-hashing and applying migrations...")
+	log.Println("Re-hashing and applying migrations...")
 
 	hashCmd := exec.Command("atlas", "migrate", "hash", "--env", "production")
 	hashCmd.Stdout = os.Stdout
