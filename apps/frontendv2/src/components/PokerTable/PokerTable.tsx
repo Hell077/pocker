@@ -1,15 +1,16 @@
-import { useGameState } from './useGameState'
+import { useGameContext } from './GameStateContext.tsx';
 import TableBackground from './TableBackground'
 import CommunityCards from './CommunityCards'
 import Pot from './Pot'
 import FancySeat from './FancySeat'
 import ActionPanel from './ActionPanel'
-import axios from 'axios'
+import DealAnimation from './animations/DealAnimation'
 
-const API_URL = import.meta.env.VITE_API_URL
+import axios from 'axios'
+import { API_URL } from '@/env/api.ts';
 
 const PokerTable = () => {
-    const { gameState } = useGameState()
+    const { gameState } = useGameContext()
     const seatCount = gameState.players.length
     const roomId = gameState.roomId
     const status = gameState.status as string
@@ -50,7 +51,7 @@ const PokerTable = () => {
 
     return (
         <div className="relative w-full h-screen bg-black overflow-visible flex items-center justify-center">
-            <TableBackground />
+            <TableBackground />\n            <DealAnimation players={gameState.players} />
 
             {/* Центр: карты и банк */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">

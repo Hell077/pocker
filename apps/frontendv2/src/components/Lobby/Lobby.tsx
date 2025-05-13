@@ -3,7 +3,7 @@ import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import CreateRoomModal from '@/widgets/CreateRoom/CreateRoom';
 import ConnectRoomModal from '@widgets/Connect/ConnectRoom';
-import { WS_URL, API_URL } from '@/env/api';
+import { API_URL } from '@/env/api';
 import { ru } from '@lang/ru.ts';
 import { en } from '@lang/en.ts';
 
@@ -55,16 +55,6 @@ export default function LobbyContent() {
       console.error('❌ Missing userID or token');
       return;
     }
-
-    const connector = WS_URL.includes('?') ? '&' : '?';
-    const wsURL = `${WS_URL}${connector}roomID=${roomId}&token=${token}`;
-
-    const socket = new WebSocket(wsURL);
-
-    socket.onopen = () => console.log('✅ WebSocket connected');
-    socket.onmessage = (event) => console.log('📨 Message:', event.data);
-    socket.onerror = (error) => console.error('❌ WebSocket error:', error);
-    socket.onclose = () => console.log('❎ WebSocket closed');
 
     navigate(`/table/${roomId}`);
   };

@@ -22,6 +22,8 @@ func (m *RoomModule) Register(w worker.Worker) {
 	w.RegisterActivity(SendMessageActivity)
 	w.RegisterActivity(SaveGameHistoryActivity)
 	w.RegisterActivity(SendCardToUserActivity)
+	w.RegisterActivity(SendGameStateActivity)
+	w.RegisterActivity(DisconnectAllUsersActivity)
 }
 
 func NewRoomTemporalModule() *RoomModule {

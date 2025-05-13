@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useGameState } from './useGameState'
+import { useGameContext } from './GameStateContext'
 
 export default function ActionPanel() {
     const [showModal, setShowModal] = useState(false)
@@ -14,12 +14,11 @@ export default function ActionPanel() {
         .find((row) => row.startsWith('userId='))
         ?.split('=')[1] || ''
 
-    const {
-        gameState,
+    const { gameState,
         sendPlayerAction,
         availableActions,
-        fetchAvailableActions,
-    } = useGameState()
+        fetchAvailableActions
+    } = useGameContext()
 
     const isYourTurn = gameState.currentTurn === userId
 
