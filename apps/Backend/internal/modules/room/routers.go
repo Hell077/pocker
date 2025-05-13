@@ -21,7 +21,6 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 
 	roomGroup := router.Group("/room")
 
-	// ✅ REST endpoints с JWT
 	roomGroup.Use(middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")))
 	roomGroup.Get("/list", roomHandler.AvailableRoomList)
 	roomGroup.Post("/create-room", roomHandler.CreateRoom)
@@ -42,7 +41,7 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 
 	wsGroup.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		if allowed := c.Locals("allowed"); allowed != true {
-			log.Println("❌ WebSocket upgrade not allowed")
+			log.Println("WebSocket upgrade not allowed")
 			_ = c.Close()
 			return
 		}

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { WS_URL } from '@/env/api.ts'
-import { API_URL } from '@/env/api.ts'
+import { WS_URL, API_URL } from '@/env/api'
 
 export interface Player {
     id: string
@@ -10,6 +9,10 @@ export interface Player {
     chips: number
     cards?: string[]
     hasFolded?: boolean
+}
+
+interface AvailableActionsResponse {
+    actions: string[]
 }
 
 export interface GameState {
@@ -32,8 +35,6 @@ interface RawGameState {
     players?: string[] | null
 }
 
-
-
 function normalizeGameState(payload: RawGameState): Partial<GameState> {
     const players: Player[] = Array.isArray(payload.players)
       ? payload.players.map((id) => ({
@@ -50,14 +51,26 @@ function normalizeGameState(payload: RawGameState): Partial<GameState> {
         status: payload.status ?? '',
         currentTurn: payload.currentTurn ?? null,
         winnerId: payload.winnerId ?? null,
-        communityCards: Array.isArray(payload.communityCards)
-          ? payload.communityCards
-          : [],
+        communityCards: Array.isArray(payload.communityCards) ? payload.communityCards : [],
         players,
     }
 }
 
-export const useGameState = () => {
+const getUserId = (): string => {
+    try {
+        return JSON.parse(localStorage.getItem('user') || '{}')?.id || ''
+    } catch {
+        return ''
+    }
+}
+
+export const useGameState = (): {
+    gameState: GameState
+    setGameState: React.Dispatch<React.SetStateAction<GameState>>
+    availableActions: string[]
+    fetchAvailableActions: () => Promise<void>
+    sendPlayerAction: (activity: string, args?: Record<string, unknown>) => Promise<void>
+} => {
     const [gameState, setGameState] = useState<GameState>({
         players: [],
         communityCards: [],
@@ -69,29 +82,45 @@ export const useGameState = () => {
     })
 
     const [availableActions, setAvailableActions] = useState<string[]>([])
-
     const wsRef = useRef<WebSocket | null>(null)
     const joinedRef = useRef(false)
+    const lastFetchedTurnRef = useRef<string | null>(null)
+    const lastActionFetchTimeRef = useRef<number>(0)
 
     const fetchAvailableActions = async () => {
+        const now = Date.now()
+        const debounceMs = 1000
+
+        if (now - lastActionFetchTimeRef.current < debounceMs) {
+            console.log('⏳ Слишком частый запрос действий — пропущено')
+            return
+        }
+
+        lastActionFetchTimeRef.current = now
+
         try {
-            const roomID = gameState.roomId
-            const userID =
-              document.cookie.split('; ').find((row) => row.startsWith('userId='))?.split('=')[1] || ''
             const token = localStorage.getItem('accessToken')
+            const userID = getUserId()
+            const roomID = gameState.roomId
 
-            if (!roomID || !userID || !token) return
+            if (!token || !userID || !roomID) return
 
-            const res = await axios.get<string[]>(
+            console.log('📡 Запрос на доступные действия', { userID, roomID })
+
+            const res = await axios.get<AvailableActionsResponse>(
               `${API_URL}/room/available-actions?roomID=${roomID}&userID=${userID}`,
-              {
-                  headers: {
-                      Authorization: token,
-                  },
-              }
+              { headers: { Authorization: token } }
             )
 
-            setAvailableActions(res.data)
+            const actions = res.data?.actions
+
+            if (Array.isArray(actions) && actions.every((a) => typeof a === 'string')) {
+                console.log('✅ Получены действия:', actions)
+                setAvailableActions(actions)
+            } else {
+                console.warn('⚠️ Неверный формат actions:', actions)
+                setAvailableActions([])
+            }
         } catch (err) {
             console.warn('⚠️ Ошибка получения доступных действий:', err)
             setAvailableActions([])
@@ -103,76 +132,93 @@ export const useGameState = () => {
       args: Record<string, unknown> = {}
     ) => {
         try {
-            const roomID = gameState.roomId
-            const userID =
-              document.cookie.split('; ').find((row) => row.startsWith('userId='))?.split('=')[1] || ''
-            const token = localStorage.getItem('accessToken')
+            const user_id = getUserId()
+            const room_id = gameState.roomId
 
-            if (!token || !roomID || !userID) return
+            if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                console.warn('⛔ Невозможно отправить действие: WebSocket не готов')
+                return
+            }
 
-            await axios.post(
-              `${API_URL}/room/action`,
-              { activity, roomID, userID, ...args },
-              {
-                  headers: {
-                      Authorization: token,
-                  },
-              }
-            )
+            const argsArray: string[] = Object.values(args).map(String)
 
-            console.log('✅ Действие отправлено:', activity, args)
+            const message = {
+                user_id,
+                room_id,
+                activity,
+                args: argsArray,
+            }
+
+            wsRef.current.send(JSON.stringify(message))
+            console.log('📤 Отправлено действие по WS:', message)
         } catch (err) {
-            console.error('❌ Ошибка при отправке действия игрока:', err)
+            console.error('❌ Ошибка при отправке действия через WebSocket:', err)
         }
     }
+
 
     useEffect(() => {
         const roomID = gameState.roomId
         const token = localStorage.getItem('accessToken')
-        if (!roomID || !token) return
-        if (wsRef.current) return
+        if (!roomID || !token || wsRef.current) return
 
         const wsUrl = `${WS_URL}?roomID=${roomID}&token=${token}`
         const ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
         ws.onopen = () => {
-            console.log('🟢 WebSocket подключен')
+            console.log('🟢 [WS] Соединение открыто')
         }
 
         ws.onmessage = (event) => {
+            console.log('📩 [WS] Получено сообщение:', event.data)
+
             const text = event.data
 
             try {
-                if (!text.startsWith('{')) {
-                    console.warn('📨 Текстовое сообщение от WS:', text)
-                    return
-                }
-
+                if (!text.startsWith('{')) return
                 const data = JSON.parse(text)
 
                 if (data.type === 'update-game-state') {
+                    console.log('🔄 [WS] Обновление gameState:', data.payload)
+
                     const normalized = normalizeGameState(data.payload)
-                    setGameState((prev) => ({
-                        ...prev,
-                        ...normalized,
-                    }))
+                    const userID = getUserId()
+
+                    setGameState((prev) => {
+                        const newTurn = normalized.currentTurn
+
+                        if (
+                          newTurn &&
+                          newTurn === userID &&
+                          lastFetchedTurnRef.current !== newTurn
+                        ) {
+                            console.log('🎯 Новый ход для пользователя:', newTurn)
+                            lastFetchedTurnRef.current = newTurn
+                            void fetchAvailableActions()
+                        }
+
+                        return {
+                            ...prev,
+                            ...normalized,
+                        }
+                    })
                 } else if (data.type === 'error') {
-                    console.warn('❌ WS Error:', data.error)
+                    console.warn('❌ [WS] Ошибка:', data.error)
                 } else {
-                    console.log('📨 WS unknown JSON message:', data)
+                    console.log('📨 [WS] Неизвестное сообщение:', data)
                 }
             } catch (e) {
-                console.warn('⚠️ Ошибка обработки WS:', e, 'Raw message:', text)
+                console.warn('⚠️ [WS] Ошибка парсинга сообщения:', e)
             }
         }
 
         ws.onerror = (e) => {
-            console.error('❌ WebSocket ошибка:', e)
+            console.error('🛑 [WS] Ошибка соединения:', e)
         }
 
-        ws.onclose = () => {
-            console.log('🔴 WebSocket закрыт')
+        ws.onclose = (e) => {
+            console.log(`🔴 [WS] Соединение закрыто, код: ${e.code}, причина: ${e.reason}`)
             wsRef.current = null
             joinedRef.current = false
         }
@@ -182,7 +228,7 @@ export const useGameState = () => {
             wsRef.current = null
             joinedRef.current = false
         }
-    }, [gameState.roomId])
+    }, []) // только при монтировании
 
     return {
         gameState,
