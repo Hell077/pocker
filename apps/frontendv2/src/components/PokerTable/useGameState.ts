@@ -65,11 +65,12 @@ const getUserId = (): string => {
 }
 
 export const useGameState = (): {
-    gameState: GameState
-    setGameState: React.Dispatch<React.SetStateAction<GameState>>
-    availableActions: string[]
-    fetchAvailableActions: () => Promise<void>
-    sendPlayerAction: (activity: string, args?: Record<string, unknown>) => Promise<void>
+    gameState: GameState;
+    setGameState: (value: (((prevState: GameState) => GameState) | GameState)) => void;
+    availableActions: string[];
+    fetchAvailableActions: () => Promise<void>;
+    sendPlayerAction: (activity: string, args?: Record<string, unknown>) => Promise<void>;
+    sendReadyStatus: (isReady: boolean) => void
 } => {
     const [gameState, setGameState] = useState<GameState>({
         players: [],
@@ -124,6 +125,30 @@ export const useGameState = (): {
         } catch (err) {
             console.warn('⚠️ Ошибка получения доступных действий:', err)
             setAvailableActions([])
+        }
+    }
+
+    const sendReadyStatus = (isReady: boolean) => {
+        try {
+            const user_id = getUserId()
+            const room_id = gameState.roomId
+
+            if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                console.warn('⛔ Невозможно отправить статус готовности: WebSocket не готов')
+                return
+            }
+
+            const message = {
+                user_id,
+                room_id,
+                activity: 'ready',
+                args: [isReady.toString()],
+            }
+
+            wsRef.current.send(JSON.stringify(message))
+            console.log('📤 Отправлен статус готовности:', message)
+        } catch (err) {
+            console.error('❌ Ошибка при отправке статуса готовности:', err)
         }
     }
 
@@ -236,5 +261,6 @@ export const useGameState = (): {
         availableActions,
         fetchAvailableActions,
         sendPlayerAction,
+        sendReadyStatus,
     }
 }

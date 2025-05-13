@@ -3,6 +3,7 @@ import TableBackground from './TableBackground'
 import CommunityCards from './CommunityCards'
 import Pot from './Pot'
 import FancySeat from './FancySeat'
+import { useState } from 'react'
 import ActionPanel from './ActionPanel'
 import DealAnimation from './animations/DealAnimation'
 
@@ -10,10 +11,18 @@ import axios from 'axios'
 import { API_URL } from '@/env/api.ts';
 
 const PokerTable = () => {
-    const { gameState } = useGameContext()
+    const { gameState, sendReadyStatus } = useGameContext()
     const seatCount = gameState.players.length
     const roomId = gameState.roomId
     const status = gameState.status as string
+    const [ready, setReady] = useState(false)
+
+    const handleToggleReady = () => {
+        const next = !ready
+        setReady(next)
+        sendReadyStatus(next)
+    }
+
 
     const currentUserId = document.cookie
       .split('; ')
@@ -95,6 +104,20 @@ const PokerTable = () => {
           })}
 
           <ActionPanel />
+
+          {status !== 'playing' && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-auto">
+                    <button
+                      onClick={handleToggleReady}
+                      className={`px-8 py-4 rounded-xl text-white text-lg font-semibold shadow-xl transition 
+                       ${ready ? 'bg-gray-600 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                        {ready ? '🚫 Отменить готовность' : '✅ Я готов'}
+                    </button>
+                </div>
+            </div>
+          )}
 
           {status !== 'playing' && isOwner && (
             <div className="absolute bottom-6 z-50">

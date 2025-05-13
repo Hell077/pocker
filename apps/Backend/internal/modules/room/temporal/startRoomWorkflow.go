@@ -26,7 +26,10 @@ type StartGameSignal struct{}
 type LeaveRoomSignal struct {
 	UserID string
 }
-
+type PlayerReadySignal struct {
+	UserID string
+	Ready  bool
+}
 type TerminateGameSignal struct{}
 type PlayerMoveSignal struct {
 	UserID string
@@ -54,6 +57,7 @@ type RoomState struct {
 	RoundStage    string
 	HasActed      map[string]bool
 	PlayerBets    map[string]int64
+	ReadyPlayers  map[string]bool
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
@@ -65,17 +69,26 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		StartTime: workflow.Now(ctx),
 	}
 
-	hasHadPlayers := false
+	// вспомогательные переменные
 	var shouldTerminate bool
 	var cancelTimer workflow.CancelFunc
 	var emptyRoomTimer workflow.Future
+	var readyTimer workflow.Future
+	var cancelReadyTimer workflow.CancelFunc
+	hasHadPlayers := false
 
+	// внешние сигналы
 	startGameChan := workflow.GetSignalChannel(ctx, "start-game")
 	joinChan := workflow.GetSignalChannel(ctx, "join-room")
 	leaveChan := workflow.GetSignalChannel(ctx, "leave-room")
 	moveChan := workflow.GetSignalChannel(ctx, "player-move")
 	terminateChan := workflow.GetSignalChannel(ctx, "terminate-game")
 	dealCardsChan := workflow.GetSignalChannel(ctx, "deal-cards")
+	readyChan := workflow.GetSignalChannel(ctx, "player-ready")
+
+	// внутренний канал для автозапуска игры
+	internalStartGameChan := workflow.NewChannel(ctx)
+
 	tick := time.Minute * 2
 
 	_ = workflow.SetQueryHandler(ctx, "available-actions", func(userID string) ([]string, error) {
@@ -106,60 +119,23 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			})
 		}
 
+		if readyTimer != nil {
+			selector.AddFuture(readyTimer, func(f workflow.Future) {
+				logger.Info("✅ Ready timer fired — signaling local start-game")
+				internalStartGameChan.Send(ctx, struct{}{})
+				readyTimer = nil
+			})
+		}
+
 		selector.AddReceive(startGameChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s StartGameSignal
 			c.Receive(ctx, &s)
-
-			if len(state.Players) == 0 {
-				logger.Warn("❌ Cannot start game: no players in room")
-				sendToAllPlayers(ctx, state.RoomID, state.Players, "⚠️ Game cannot start, no players in room")
-				return
-			}
-
-			state.GameStarted = true
-			state.PlayerOrder = make([]string, 0)
-			state.PlayerChips = make(map[string]int64)
-			state.PlayerFolded = make(map[string]bool)
-			state.PlayerAllIn = make(map[string]bool)
-			state.RoundStage = "preflop"
-			state.HasActed = make(map[string]bool)
-			state.PlayerBets = make(map[string]int64)
-
-			for id := range state.Players {
-				state.PlayerOrder = append(state.PlayerOrder, id)
-				state.PlayerChips[id] = 1000
-				state.PlayerFolded[id] = false
-				state.PlayerAllIn[id] = false
-			}
-
-			if len(state.PlayerOrder) == 0 {
-				logger.Error("❌ PlayerOrder is still empty after init")
-				return
-			}
-
-			state.CurrentPlayer = state.PlayerOrder[0]
-
-			logger.Info("🎮 Game started", "firstPlayer", state.CurrentPlayer)
-			sendToAllPlayers(ctx, state.RoomID, state.Players, "🎮 Game started!")
-
-			futures := dealCards(ctx, state, roomID)
-			for _, f := range futures {
-				if err := f.Get(ctx, nil); err != nil {
-					logger.Error("❌ Failed to execute card dealing activity", "err", err)
-				}
-			}
-
-			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
-			sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
+			handleStartGame(ctx, state, roomID, logger)
 		})
 
-		selector.AddReceive(dealCardsChan, func(c workflow.ReceiveChannel, _ bool) {
-			var s DealCardsSignal
-			c.Receive(ctx, &s)
-			futures := dealCards(ctx, state, roomID)
-			for _, f := range futures {
-				_ = f.Get(ctx, nil)
-			}
+		selector.AddReceive(internalStartGameChan, func(c workflow.ReceiveChannel, _ bool) {
+			c.Receive(ctx, nil)
+			handleStartGame(ctx, state, roomID, logger)
 		})
 
 		selector.AddReceive(joinChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -192,18 +168,58 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			sendToAllPlayers(ctx, state.RoomID, state.Players, "Player "+s.UserID+" left the room")
 		})
 
+		selector.AddReceive(readyChan, func(c workflow.ReceiveChannel, _ bool) {
+			var s PlayerReadySignal
+			c.Receive(ctx, &s)
+
+			if state.ReadyPlayers == nil {
+				state.ReadyPlayers = make(map[string]bool)
+			}
+			state.ReadyPlayers[s.UserID] = s.Ready
+
+			logger.Info("🟢 Ready status updated", zap.String("userID", s.UserID), zap.Bool("ready", s.Ready))
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🎯 %s is %s", s.UserID, boolToReady(s.Ready)))
+
+			allReady := len(state.ReadyPlayers) == len(state.Players)
+			if allReady {
+				for _, ok := range state.ReadyPlayers {
+					if !ok {
+						allReady = false
+						break
+					}
+				}
+			}
+
+			if allReady {
+				if readyTimer == nil {
+					logger.Info("⏳ All players ready. Starting 10s countdown...")
+					var cancelCtx workflow.Context
+					cancelCtx, cancelReadyTimer = workflow.WithCancel(ctx)
+					readyTimer = workflow.NewTimer(cancelCtx, 10*time.Second)
+				}
+			} else if readyTimer != nil {
+				cancelReadyTimer()
+				readyTimer = nil
+				logger.Info("❌ Countdown cancelled. Not all players are ready anymore.")
+			}
+		})
+
+		selector.AddReceive(dealCardsChan, func(c workflow.ReceiveChannel, _ bool) {
+			var s DealCardsSignal
+			c.Receive(ctx, &s)
+			futures := dealCards(ctx, state, roomID)
+			for _, f := range futures {
+				_ = f.Get(ctx, nil)
+			}
+		})
+
 		selector.AddReceive(moveChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s PlayerMoveSignal
 			c.Receive(ctx, &s)
 
 			err := ValidatePlayerAction(s.Action, state, s.UserID, s.Args)
 			if err != nil {
-				logger.Warn("🚫 Invalid player action",
-					"userID", s.UserID,
-					"action", s.Action,
-					"args", s.Args,
-					"error", err.Error(),
-				)
+				logger.Warn("🚫 Invalid player action", zap.Error(err))
 				sendToPlayer(ctx, state.RoomID, s.UserID, fmt.Sprintf("❌ Invalid action: %s", err.Error()))
 				return
 			}
@@ -211,7 +227,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			entry := s.UserID + ": " + s.Action + " " + strings.Join(s.Args, " ")
 			state.MoveLog = append(state.MoveLog, entry)
 
-			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action, "args", s.Args)
+			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action)
 			sendToAllPlayers(ctx, state.RoomID, state.Players, entry)
 
 			state.HasActed[s.UserID] = true
@@ -220,40 +236,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			handler.Execute(state, s.UserID, s.Args)
 
 			NextTurn(ctx, state)
-
-			if IsBettingRoundOver(state) {
-				logger.Info("✅ All players acted. Advancing stage...")
-				state.PlayerBets = make(map[string]int64)
-				state.CurrentBet = 0
-				state.LastRaise = 0
-				NextStage(state)
-
-				if state.RoundStage == "ended" || state.RoundStage == "showdown" {
-					sendToAllPlayers(ctx, state.RoomID, state.Players, "🏁 Showdown begins...")
-
-					winnerID, combo := EvaluateWinner(state)
-					if winnerID != "" {
-						sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🥇 Winner: %s | %s", winnerID, combo))
-						state.PlayerChips[winnerID] += state.Pot
-						sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("💰 %s wins the pot: %d", winnerID, state.Pot))
-						state.Pot = 0
-					} else {
-						sendToAllPlayers(ctx, state.RoomID, state.Players, "😶 No winner")
-					}
-
-					state.RoundStage = "ended"
-				} else {
-					DealBoardCards(state)
-					sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🃏 Stage: %s | Board: %v", state.RoundStage, state.BoardCards))
-					state.HasActed = make(map[string]bool)
-					state.CurrentPlayer = state.PlayerOrder[0]
-					sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
-				}
-			} else if state.CurrentPlayer != "" {
-				sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🕓 Now playing: %s", state.CurrentPlayer))
-				sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
-				logger.Info("🔁 Turn passed", zap.String("nextPlayer", state.CurrentPlayer))
-			}
 		})
 
 		selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, _ bool) {
@@ -350,7 +332,7 @@ func GenerateShuffledDeck(ctx workflow.Context) []string {
 	var shuffled []string
 	_ = workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		shuffledCopy := append([]string(nil), deck...) // копия
+		shuffledCopy := append([]string(nil), deck...)
 		for i := range shuffledCopy {
 			j := r.Intn(i + 1)
 			shuffledCopy[i], shuffledCopy[j] = shuffledCopy[j], shuffledCopy[i]
@@ -505,9 +487,14 @@ func SendGameStateActivity(ctx context.Context, input GameStateActivityInput) er
 			"pot":            input.State.Pot,
 			"communityCards": input.State.BoardCards,
 			"roomId":         input.State.RoomID,
-			"status":         input.State.RoundStage,
-			"currentTurn":    input.State.CurrentPlayer,
-			"winnerId":       "",
+			"status": func() string {
+				if input.State.GameStarted {
+					return "playing"
+				}
+				return "waiting"
+			}(),
+			"currentTurn": input.State.CurrentPlayer,
+			"winnerId":    "",
 		},
 	}
 	jsonData, err := json.Marshal(message)
@@ -531,4 +518,55 @@ func SendMessage(roomID, userID, message string) error {
 	}
 
 	return conn.WriteMessage(1, []byte(message))
+}
+
+func boolToReady(b bool) string {
+	if b {
+		return "✅ Ready"
+	}
+	return "❌ Not Ready"
+}
+
+func handleStartGame(ctx workflow.Context, state *RoomState, roomID string, logger log.Logger) {
+	if len(state.Players) == 0 {
+		logger.Warn("❌ Cannot start game: no players in room")
+		sendToAllPlayers(ctx, roomID, state.Players, "⚠️ Game cannot start, no players in room")
+		return
+	}
+
+	state.GameStarted = true
+	state.PlayerOrder = make([]string, 0)
+	state.PlayerChips = make(map[string]int64)
+	state.PlayerFolded = make(map[string]bool)
+	state.PlayerAllIn = make(map[string]bool)
+	state.RoundStage = "preflop"
+	state.HasActed = make(map[string]bool)
+	state.PlayerBets = make(map[string]int64)
+
+	for id := range state.Players {
+		state.PlayerOrder = append(state.PlayerOrder, id)
+		state.PlayerChips[id] = 1000
+		state.PlayerFolded[id] = false
+		state.PlayerAllIn[id] = false
+	}
+
+	if len(state.PlayerOrder) == 0 {
+		logger.Error("❌ PlayerOrder is still empty after init")
+		return
+	}
+
+	state.CurrentPlayer = state.PlayerOrder[0]
+
+	logger.Info("🎮 Game started", zap.String("firstPlayer", state.CurrentPlayer))
+	sendToAllPlayers(ctx, roomID, state.Players, "🎮 Game started!")
+
+	futures := dealCards(ctx, state, roomID)
+	for _, f := range futures {
+		if err := f.Get(ctx, nil); err != nil {
+			logger.Error("❌ Failed to deal cards", zap.Error(err))
+		}
+	}
+
+	sendToAllPlayers(ctx, roomID, state.Players, fmt.Sprintf("🕓 First turn: %s", state.CurrentPlayer))
+	sendToPlayer(ctx, roomID, state.CurrentPlayer, "🟢 Your turn")
 }

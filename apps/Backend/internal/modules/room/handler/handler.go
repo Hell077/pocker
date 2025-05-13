@@ -132,6 +132,14 @@ func (h *RoomHandler) JoinRoom(c *websocket.Conn, roomID, userID string) error {
 			h.logger.Warn("❗ Invalid player action JSON", zap.Error(err))
 			continue
 		}
+		if req.Activity == "ready" && len(req.Args) > 0 {
+			isReady := req.Args[0] == "true"
+			_ = h.temporal.SignalWorkflow(context.Background(), "room_"+req.RoomID, "", "player-ready", room_temporal.PlayerReadySignal{
+				UserID: req.UserID,
+				Ready:  isReady,
+			})
+			continue
+		}
 
 		h.logger.Info("📩 Player action",
 			zap.String("roomID", req.RoomID),
