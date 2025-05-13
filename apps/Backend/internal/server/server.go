@@ -31,7 +31,7 @@ func NewServer(db *gorm.DB, c client.Client, logger *zap.Logger) *AppServer {
 	}))
 
 	app.Use(func(ctx *fiber.Ctx) error {
-		logger.Info("📥 incoming request",
+		logger.Info("incoming request",
 			zap.String("method", ctx.Method()),
 			zap.String("path", ctx.Path()),
 			zap.String("ip", ctx.IP()),
