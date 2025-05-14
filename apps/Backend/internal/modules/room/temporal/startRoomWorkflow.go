@@ -319,22 +319,48 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
-	activePlayers := []string{}
+	notFolded := 0
+	canAct := []string{}
 	for _, id := range state.PlayerOrder {
-		if !state.PlayerFolded[id] && !state.PlayerAllIn[id] {
-			activePlayers = append(activePlayers, id)
+		if !state.PlayerFolded[id] {
+			notFolded++
+			if !state.PlayerAllIn[id] {
+				canAct = append(canAct, id)
+			}
 		}
 	}
 
-	if len(activePlayers) == 1 {
-		winner := activePlayers[0]
-		msg := fmt.Sprintf("🏆 %s wins the hand (all others folded)", winner)
-		sendToAllPlayers(ctx, state.RoomID, state.Players, msg)
-		state.RoundStage = "ended"
-		state.GameStarted = false
-		return
+	// 🏆 Один не фолд — победа
+	if notFolded == 1 {
+		for _, id := range state.PlayerOrder {
+			if !state.PlayerFolded[id] {
+				msg := fmt.Sprintf("🏆 %s wins the hand (all others folded)", id)
+				sendToAllPlayers(ctx, state.RoomID, state.Players, msg)
+				state.RoundStage = "ended"
+				state.GameStarted = false
+				return
+			}
+		}
 	}
 
+	// Все в all-in или фолд — закончить раунд и показать победителя
+	if len(canAct) == 0 {
+		if state.RoundStage == "river" || state.RoundStage == "showdown" {
+			winner, desc := EvaluateWinner(state)
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🏆 %s wins with %s", winner, desc))
+			state.RoundStage = "ended"
+			state.GameStarted = false
+			return
+		} else {
+			NextStage(state)
+			DealBoardCards(state)
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🃏 New stage: %s", state.RoundStage))
+			NextTurn(ctx, state) // рекурсивный вызов чтобы продолжить
+			return
+		}
+	}
+
+	// Следующий активный
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
@@ -345,8 +371,17 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
-	// ⏹ Никто не найден — это логическая ошибка
 	state.CurrentPlayer = ""
+}
+
+func AllOthersAllInOrFolded(state *RoomState) bool {
+	active := 0
+	for _, id := range state.PlayerOrder {
+		if !state.PlayerFolded[id] && !state.PlayerAllIn[id] {
+			active++
+		}
+	}
+	return active == 0
 }
 
 func GenerateShuffledDeck(ctx workflow.Context) []string {
