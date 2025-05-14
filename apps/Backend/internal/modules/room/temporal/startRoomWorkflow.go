@@ -228,11 +228,21 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action)
 			sendToAllPlayers(baseCtx, state.RoomID, state.Players, entry)
 
-			state.HasActed[s.UserID] = true
-
+			// 🔧 Применяем действие
 			handler := ActionRegistry[s.Action]
 			handler.Execute(state, s.UserID, s.Args)
 
+			// 🔧 Отмечаем, что игрок действовал
+			state.HasActed[s.UserID] = true
+
+			// ✅ Если раунд завершён — переходим дальше
+			if IsBettingRoundOver(state) {
+				NextStage(state)
+				DealBoardCards(state)
+				sendToAllPlayers(baseCtx, state.RoomID, state.Players, fmt.Sprintf("🃏 New stage: %s", state.RoundStage))
+			}
+
+			// 🔄 Переход хода
 			NextTurn(baseCtx, state)
 		})
 
@@ -309,16 +319,33 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
+	activePlayers := []string{}
+	for _, id := range state.PlayerOrder {
+		if !state.PlayerFolded[id] && !state.PlayerAllIn[id] {
+			activePlayers = append(activePlayers, id)
+		}
+	}
+
+	if len(activePlayers) == 1 {
+		winner := activePlayers[0]
+		msg := fmt.Sprintf("🏆 %s wins the hand (all others folded)", winner)
+		sendToAllPlayers(ctx, state.RoomID, state.Players, msg)
+		state.RoundStage = "ended"
+		state.GameStarted = false
+		return
+	}
+
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
 		if !state.PlayerFolded[next] && !state.PlayerAllIn[next] {
 			state.CurrentPlayer = next
-
 			sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
 			return
 		}
 	}
+
+	// ⏹ Никто не найден — это логическая ошибка
 	state.CurrentPlayer = ""
 }
 
