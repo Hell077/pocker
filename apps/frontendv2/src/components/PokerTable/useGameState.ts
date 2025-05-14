@@ -181,7 +181,6 @@ export const useGameState = (): {
         }
     }
 
-
     useEffect(() => {
         const roomID = gameState.roomId
         const token = localStorage.getItem('accessToken')
@@ -210,7 +209,7 @@ export const useGameState = (): {
                     const normalized = normalizeGameState(data.payload)
                     const userID = getUserId()
 
-                    setGameState((prev) => {
+                    setGameState(() => {
                         const newTurn = normalized.currentTurn
 
                         if (
@@ -224,8 +223,13 @@ export const useGameState = (): {
                         }
 
                         return {
-                            ...prev,
-                            ...normalized,
+                            roomId: normalized.roomId || '',
+                            players: normalized.players || [],
+                            pot: normalized.pot || 0,
+                            communityCards: normalized.communityCards || [],
+                            status: normalized.status || '',
+                            currentTurn: normalized.currentTurn || null,
+                            winnerId: normalized.winnerId || null,
                         }
                     })
                 } else if (data.type === 'error') {
@@ -253,7 +257,7 @@ export const useGameState = (): {
             wsRef.current = null
             joinedRef.current = false
         }
-    }, []) // только при монтировании
+    }, [])
 
     return {
         gameState,
