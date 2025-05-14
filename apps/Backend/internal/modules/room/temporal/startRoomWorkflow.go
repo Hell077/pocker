@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"math/rand"
@@ -268,8 +269,14 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		}
 
 		activityCtx := workflow.WithActivityOptions(baseCtx, workflow.ActivityOptions{
-			StartToCloseTimeout: 2 * time.Second,
+			StartToCloseTimeout: 5 * time.Second,
+			RetryPolicy: &temporal.RetryPolicy{
+				InitialInterval:    time.Second,
+				BackoffCoefficient: 2.0,
+				MaximumAttempts:    3,
+			},
 		})
+
 		input := GameStateActivityInput{RoomID: state.RoomID, Players: state.Players, State: *state}
 		_ = workflow.ExecuteActivity(activityCtx, SendGameStateActivity, input).Get(activityCtx, nil)
 	}
@@ -478,10 +485,18 @@ func EvaluateWinner(state *RoomState) (string, string) {
 func sendToPlayer(ctx workflow.Context, roomID, userID, message string) {
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 5 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumAttempts:    3,
+		},
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	_ = workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, userID, message)
+	err := workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, userID, message).Get(ctx, nil)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("📛 Failed to send message to player", zap.String("userID", userID), zap.Error(err))
+	}
 }
 
 func dealCards(ctx workflow.Context, state *RoomState, roomID string) []workflow.Future {
