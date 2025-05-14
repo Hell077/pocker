@@ -6,26 +6,31 @@ import (
 	"errors"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"log"
+	"strconv"
 
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
+	authService "poker/internal/modules/auth/service"
 	"poker/internal/modules/room/dto"
 	"poker/internal/modules/room/manager"
-	"poker/internal/modules/room/service"
+	service "poker/internal/modules/room/service"
 	room_temporal "poker/internal/modules/room/temporal"
 )
 
 type RoomHandler struct {
-	service  service.RoomService
-	logger   zap.Logger
-	temporal client.Client
+	service     service.RoomService
+	authService authService.AuthService
+	logger      zap.Logger
+	temporal    client.Client
 }
 
-func NewRoomHandler(s *service.RoomService, logger *zap.Logger, temporal client.Client) *RoomHandler {
+func NewRoomHandler(s *service.RoomService, authService authService.AuthService, logger *zap.Logger, temporal client.Client) *RoomHandler {
 	return &RoomHandler{
-		service:  *s,
-		logger:   *logger,
-		temporal: temporal,
+		service:     *s,
+		logger:      *logger,
+		authService: authService,
+		temporal:    temporal,
 	}
 
 }
@@ -331,4 +336,34 @@ func (h *RoomHandler) TerminateRoom(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "temporal error"})
 	}
 	return c.JSON(fiber.Map{"message": "game has terminate successfully"})
+}
+
+func (h *RoomHandler) PlayersById(c *fiber.Ctx) error {
+	var r dto.UserIDs
+	if err := c.BodyParser(&r); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+	}
+	var players []dto.Player
+
+	for _, id := range r.Id {
+		acc, err := h.authService.Me(id)
+		if err != nil {
+			log.Printf("⚠️ Не удалось получить игрока %s: %v", id, err)
+			continue
+		}
+
+		var balance int64
+		if acc.AccountBalance.CurrentBalance != "" {
+			balance, _ = strconv.ParseInt(acc.AccountBalance.CurrentBalance, 10, 64)
+		}
+
+		players = append(players, dto.Player{
+			ID:        acc.ID,
+			Nickname:  acc.Username,
+			AvatarURL: acc.AvatarLink,
+			Chips:     balance,
+		})
+	}
+
+	return c.JSON(players)
 }

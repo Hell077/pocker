@@ -32,19 +32,11 @@ interface RawGameState {
     currentTurn?: string | null
     winnerId?: string | null
     communityCards?: string[] | null
-    players?: string[] | null
+    players?: Player[] | Record<string, true> | null
+    playerCards?: Record<string, string[] | null>
 }
 
 function normalizeGameState(payload: RawGameState): Partial<GameState> {
-    const players: Player[] = Array.isArray(payload.players)
-      ? payload.players.map((id) => ({
-          id,
-          nickname: 'Игрок',
-          avatarUrl: '',
-          chips: 1000,
-      }))
-      : []
-
     return {
         pot: payload.pot ?? 0,
         roomId: payload.roomId ?? '',
@@ -52,7 +44,6 @@ function normalizeGameState(payload: RawGameState): Partial<GameState> {
         currentTurn: payload.currentTurn ?? null,
         winnerId: payload.winnerId ?? null,
         communityCards: Array.isArray(payload.communityCards) ? payload.communityCards : [],
-        players,
     }
 }
 
@@ -64,41 +55,44 @@ const getUserId = (): string => {
     }
 }
 
+async function fetchPlayersByIds(ids: string[]): Promise<Player[]> {
+    const token = localStorage.getItem('accessToken')
+    const res = await fetch(`${API_URL}/room/players-by-id`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: token ?? '',
+        },
+        body: JSON.stringify({ user_id: ids }),
+    })
+
+    if (!res.ok) {
+        console.warn('⚠️ Не удалось загрузить игроков:', await res.text())
+        return []
+    }
+
+    return res.json()
+}
+
 export const parseCardSymbol = (card: string): string => {
     const unicodeToRankMap: Record<string, string> = {
-        'A': 'A',
-        'K': 'K',
-        'Q': 'Q',
-        'J': 'J',
-        '10': '10',
-        '9': '9',
-        '8': '8',
-        '7': '7',
-        '6': '6',
-        '5': '5',
-        '4': '4',
-        '3': '3',
-        '2': '2',
+        A: 'A', K: 'K', Q: 'Q', J: 'J', '10': '10',
+        '9': '9', '8': '8', '7': '7', '6': '6', '5': '5',
+        '4': '4', '3': '3', '2': '2',
     }
 
     const suitMap: Record<string, string> = {
-        '♠': 'S',
-        '♣': 'C',
-        '♦': 'D',
-        '♥': 'H',
+        '♠': 'S', '♣': 'C', '♦': 'D', '♥': 'H',
     }
 
     const match = card.match(/^([2-9]|10|[JQKA])([♠♣♦♥])$/)
-
     if (!match) return 'BACK'
 
     const [, rankRaw, suitRaw] = match
     const rank = unicodeToRankMap[rankRaw]
     const suit = suitMap[suitRaw]
 
-    if (!rank || !suit) return 'BACK'
-
-    return `${rank}${suit}`
+    return rank && suit ? `${rank}${suit}` : 'BACK'
 }
 
 export const useGameState = (): {
@@ -131,21 +125,14 @@ export const useGameState = (): {
         const now = Date.now()
         const debounceMs = 1000
 
-        if (now - lastActionFetchTimeRef.current < debounceMs) {
-            console.log('⏳ Слишком частый запрос действий — пропущено')
-            return
-        }
-
+        if (now - lastActionFetchTimeRef.current < debounceMs) return
         lastActionFetchTimeRef.current = now
 
         try {
             const token = localStorage.getItem('accessToken')
             const userID = getUserId()
             const roomID = gameState.roomId
-
             if (!token || !userID || !roomID) return
-
-            console.log('📡 Запрос на доступные действия', { userID, roomID })
 
             const res = await axios.get<AvailableActionsResponse>(
               `${API_URL}/room/available-actions?roomID=${roomID}&userID=${userID}`,
@@ -153,14 +140,7 @@ export const useGameState = (): {
             )
 
             const actions = res.data?.actions
-
-            if (Array.isArray(actions) && actions.every((a) => typeof a === 'string')) {
-                console.log('✅ Получены действия:', actions)
-                setAvailableActions(actions)
-            } else {
-                console.warn('⚠️ Неверный формат actions:', actions)
-                setAvailableActions([])
-            }
+            if (Array.isArray(actions)) setAvailableActions(actions)
         } catch (err) {
             console.warn('⚠️ Ошибка получения доступных действий:', err)
             setAvailableActions([])
@@ -168,56 +148,38 @@ export const useGameState = (): {
     }
 
     const sendReadyStatus = (isReady: boolean) => {
-        try {
-            const user_id = getUserId()
-            const room_id = gameState.roomId
+        const user_id = getUserId()
+        const room_id = gameState.roomId
+        if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
 
-            if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-                console.warn('⛔ Невозможно отправить статус готовности: WebSocket не готов')
-                return
-            }
-
-            const message = {
-                user_id,
-                room_id,
-                activity: 'ready',
-                args: [isReady.toString()],
-            }
-
-            wsRef.current.send(JSON.stringify(message))
-            console.log('📤 Отправлен статус готовности:', message)
-        } catch (err) {
-            console.error('❌ Ошибка при отправке статуса готовности:', err)
+        const message = {
+            user_id,
+            room_id,
+            activity: 'ready',
+            args: [isReady.toString()],
         }
+
+        wsRef.current.send(JSON.stringify(message))
     }
 
     const sendPlayerAction = async (
       activity: string,
       args: Record<string, unknown> = {}
     ) => {
-        try {
-            const user_id = getUserId()
-            const room_id = gameState.roomId
+        const user_id = getUserId()
+        const room_id = gameState.roomId
+        if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
 
-            if (!user_id || !room_id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-                console.warn('⛔ Невозможно отправить действие: WebSocket не готов')
-                return
-            }
+        const argsArray: string[] = Object.values(args).map(String)
 
-            const argsArray: string[] = Object.values(args).map(String)
-
-            const message = {
-                user_id,
-                room_id,
-                activity,
-                args: argsArray,
-            }
-
-            wsRef.current.send(JSON.stringify(message))
-            console.log('📤 Отправлено действие по WS:', message)
-        } catch (err) {
-            console.error('❌ Ошибка при отправке действия через WebSocket:', err)
+        const message = {
+            user_id,
+            room_id,
+            activity,
+            args: argsArray,
         }
+
+        wsRef.current.send(JSON.stringify(message))
     }
 
     useEffect(() => {
@@ -233,17 +195,14 @@ export const useGameState = (): {
             console.log('🟢 [WS] Соединение открыто')
         }
 
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
             const text = event.data
             console.log('📩 [WS] Получено сообщение:', text)
 
             if (text.startsWith('🎴 Your cards:')) {
-                const cardsText = text.replace('🎴 Your cards:', '').trim()
-                const rawCards: string[] = cardsText.split(',').map((c: string) => c.trim())
-                const parsed = rawCards.map(parseCardSymbol).filter(Boolean)
-
+                const rawCards = text.replace('🎴 Your cards:', '').trim().split(',').map((c: string) => c.trim())
+                const parsed = rawCards.map(parseCardSymbol)
                 setMyCards(parsed)
-                console.log('🂠 Личные карты:', parsed)
                 return
             }
 
@@ -253,42 +212,48 @@ export const useGameState = (): {
                 const data = JSON.parse(text)
 
                 if (data.type === 'update-game-state') {
-                    console.log('🔄 [WS] Обновление gameState:', data.payload)
-
                     const userID = getUserId()
-                    const normalized = normalizeGameState(data.payload)
+                    const payload = data.payload
+                    let players: Player[] = []
 
-                    if (data.payload?.playerCards && data.payload.playerCards[userID]) {
-                        const rawCards = data.payload.playerCards[userID]
-                        const parsed = rawCards.map(parseCardSymbol)
-                        setMyCards(parsed)
-                        console.log('🂠 Личные карты (из JSON):', parsed)
+                    if (Array.isArray(payload.players)) {
+                        players = payload.players
+                    } else if (payload.players && typeof payload.players === 'object') {
+                        const ids = Object.keys(payload.players)
+                        players = await fetchPlayersByIds(ids)
                     }
 
-                    setGameState(() => {
-                        const newTurn = normalized.currentTurn
+                    if (payload.playerCards?.[userID]) {
+                        const raw = payload.playerCards[userID]
+                        const parsed = raw?.map(parseCardSymbol) ?? []
+                        setMyCards(parsed)
+                    }
 
+                    const normalized = {
+                        ...normalizeGameState(payload),
+                        players,
+                    }
+
+                    setGameState(prev => {
+                        const newTurn = normalized.currentTurn
                         if (
                           newTurn &&
                           newTurn === userID &&
                           lastFetchedTurnRef.current !== newTurn
                         ) {
-                            console.log('🎯 Новый ход для пользователя:', newTurn)
                             lastFetchedTurnRef.current = newTurn
                             void fetchAvailableActions()
                         }
 
                         return {
-                            roomId: normalized.roomId || '',
-                            players: normalized.players || [],
-                            pot: normalized.pot || 0,
-                            communityCards: normalized.communityCards || [],
-                            status: normalized.status || '',
-                            currentTurn: normalized.currentTurn || null,
-                            winnerId: normalized.winnerId || null,
+                            ...prev,
+                            ...normalized,
                         }
                     })
-                } else if (data.type === 'error') {
+                    return
+                }
+
+                if (data.type === 'error') {
                     console.warn('❌ [WS] Ошибка:', data.error)
                 } else {
                     console.log('📨 [WS] Неизвестное сообщение:', data)
@@ -296,7 +261,6 @@ export const useGameState = (): {
             } catch (e) {
                 console.warn('⚠️ [WS] Ошибка парсинга сообщения:', e)
             }
-
         }
 
         ws.onerror = (e) => {

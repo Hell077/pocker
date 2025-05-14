@@ -197,7 +197,7 @@ func SendGameStateActivity(ctx context.Context, input GameStateActivityInput) er
 		personalPayload := map[string]interface{}{
 			"type": "update-game-state",
 			"payload": map[string]interface{}{
-				"players":        input.State.PlayerOrder,
+				"players":        input.State.Players,
 				"pot":            input.State.Pot,
 				"communityCards": input.State.BoardCards,
 				"roomId":         input.State.RoomID,

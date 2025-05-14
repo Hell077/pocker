@@ -3,7 +3,8 @@ import TableBackground from './TableBackground'
 import CommunityCards from './CommunityCards'
 import Pot from './Pot'
 import ActionPanel from './ActionPanel'
-import PlayerHand from './PlayerHand' // ✅ новый компонент
+import PlayerHand from './PlayerHand'
+import ConnectedPlayersPanel from './ConnectedPlayersPanel'
 import { useState } from 'react'
 import axios from 'axios'
 import { API_URL } from '@/env/api.ts'
@@ -50,7 +51,7 @@ const PokerTable = () => {
     return (
       <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
           <TableBackground />
-
+          <ConnectedPlayersPanel />
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
               <div className="relative flex flex-col items-center">
                   <div className="flex justify-center gap-2">

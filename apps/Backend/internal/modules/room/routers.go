@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 	"poker/internal/middleware"
+	authRepo "poker/internal/modules/auth/repo"
+	authService "poker/internal/modules/auth/service"
 	"poker/internal/modules/room/handler"
 	"poker/internal/modules/room/repo"
 	"poker/internal/modules/room/service"
@@ -17,12 +19,14 @@ import (
 func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, temporal client.Client) {
 	roomRepo := repo.NewRoomRepo(db)
 	roomService := service.NewRoomService(roomRepo, logger, temporal)
-	roomHandler := handler.NewRoomHandler(roomService, logger, temporal)
+	authService := authService.NewAuthService(authRepo.NewAuthRepo(db), logger)
+	roomHandler := handler.NewRoomHandler(roomService, authService, logger, temporal)
 
 	roomGroup := router.Group("/room")
 
 	roomGroup.Use(middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")))
 	roomGroup.Get("/list", roomHandler.AvailableRoomList)
+	roomGroup.Post("/players-by-id", roomHandler.PlayersById)
 	roomGroup.Post("/create-room", roomHandler.CreateRoom)
 	roomGroup.Post("/start-game", roomHandler.StartGame)
 	roomGroup.Post("/action", roomHandler.PlayerAction)

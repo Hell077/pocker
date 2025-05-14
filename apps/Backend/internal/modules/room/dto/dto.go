@@ -36,3 +36,14 @@ type TerminateGameRequest struct {
 type AvailableRoomListResponse struct {
 	Rooms []database.Room `json:"rooms"`
 }
+
+type Player struct {
+	ID        string `json:"id"`
+	Nickname  string `json:"nickname"`
+	AvatarURL string `json:"avatarUrl"`
+	Chips     int64  `json:"chips"`
+}
+
+type UserIDs struct {
+	Id []string `json:"user_id"`
+}

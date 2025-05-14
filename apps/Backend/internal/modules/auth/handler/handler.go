@@ -150,3 +150,32 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		"access_token": access,
 	})
 }
+
+// MeById godoc
+// @Summary Get current user
+// @Tags Auth
+// @Description Return info about authorized user
+// @Success 200 {object} dto.Me
+// @Failure 401 {object} map[string]string
+// @Router /auth/me [get]
+// @Security BearerAuth
+func (h *AuthHandler) MeById(c *fiber.Ctx) error {
+	var data dto.MeById
+	err := c.BodyParser(&data)
+	acc, err := h.service.Me(data.UserID)
+	if err != nil {
+		return c.Status(401).SendString("unauthorized")
+	}
+
+	var balance int64
+	if acc.AccountBalance.CurrentBalance != "" {
+		balance, _ = strconv.ParseInt(acc.AccountBalance.CurrentBalance, 10, 64)
+	}
+
+	return c.JSON(dto.Me{
+		Id:       acc.ID,
+		Username: acc.Username,
+		Email:    acc.Email,
+		Balance:  balance,
+	})
+}

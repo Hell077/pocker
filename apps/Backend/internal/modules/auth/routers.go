@@ -22,4 +22,5 @@ func RegisterRoutes(router fiber.Router, db *gorm.DB, logger *zap.Logger, tempor
 	authGroup.Post("/login", authHandler.Login)
 	authGroup.Post("/refresh", authHandler.Refresh)
 	authGroup.Get("/me", middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")), authHandler.Me)
+	authGroup.Get("/me-by-id", middleware.JWTAuthMiddleware(os.Getenv("JWT_KEY")), authHandler.MeById)
 }
