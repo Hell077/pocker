@@ -64,13 +64,51 @@ const getUserId = (): string => {
     }
 }
 
+const parseCardSymbol = (card: string): string => {
+    const unicodeToRankMap: Record<string, string> = {
+        'A': 'A',
+        'K': 'K',
+        'Q': 'Q',
+        'J': 'J',
+        '10': '10',
+        '9': '9',
+        '8': '8',
+        '7': '7',
+        '6': '6',
+        '5': '5',
+        '4': '4',
+        '3': '3',
+        '2': '2',
+    }
+
+    const suitMap: Record<string, string> = {
+        '♠': 'S',
+        '♣': 'C',
+        '♦': 'D',
+        '♥': 'H',
+    }
+
+    const match = card.match(/^([2-9]|10|[JQKA])([♠♣♦♥])$/)
+
+    if (!match) return 'BACK'
+
+    const [, rankRaw, suitRaw] = match
+    const rank = unicodeToRankMap[rankRaw]
+    const suit = suitMap[suitRaw]
+
+    if (!rank || !suit) return 'BACK'
+
+    return `${rank}${suit}`
+}
+
 export const useGameState = (): {
-    gameState: GameState;
-    setGameState: (value: (((prevState: GameState) => GameState) | GameState)) => void;
-    availableActions: string[];
-    fetchAvailableActions: () => Promise<void>;
-    sendPlayerAction: (activity: string, args?: Record<string, unknown>) => Promise<void>;
+    gameState: GameState
+    setGameState: (value: (((prevState: GameState) => GameState) | GameState)) => void
+    availableActions: string[]
+    fetchAvailableActions: () => Promise<void>
+    sendPlayerAction: (activity: string, args?: Record<string, unknown>) => Promise<void>
     sendReadyStatus: (isReady: boolean) => void
+    myCards: string[]
 } => {
     const [gameState, setGameState] = useState<GameState>({
         players: [],
@@ -82,6 +120,7 @@ export const useGameState = (): {
         status: '',
     })
 
+    const [myCards, setMyCards] = useState<string[]>([])
     const [availableActions, setAvailableActions] = useState<string[]>([])
     const wsRef = useRef<WebSocket | null>(null)
     const joinedRef = useRef(false)
@@ -195,12 +234,22 @@ export const useGameState = (): {
         }
 
         ws.onmessage = (event) => {
-            console.log('📩 [WS] Получено сообщение:', event.data)
-
             const text = event.data
+            console.log('📩 [WS] Получено сообщение:', text)
+
+            if (text.startsWith('🎴 Your cards:')) {
+                const cardsText = text.replace('🎴 Your cards:', '').trim()
+                const rawCards: string[] = cardsText.split(',').map((c: string) => c.trim())
+                const parsed = rawCards.map(parseCardSymbol).filter(Boolean)
+
+                setMyCards(parsed)
+                console.log('🂠 Личные карты:', parsed)
+                return
+            }
+
+            if (!text.startsWith('{')) return
 
             try {
-                if (!text.startsWith('{')) return
                 const data = JSON.parse(text)
 
                 if (data.type === 'update-game-state') {
@@ -266,5 +315,6 @@ export const useGameState = (): {
         fetchAvailableActions,
         sendPlayerAction,
         sendReadyStatus,
+        myCards,
     }
 }

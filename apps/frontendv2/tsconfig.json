@@ -35,7 +35,6 @@
       "@features/*": ["src/features/*"],
       "@entities/*": ["src/entities/*"],
       "@app/*": ["src/app/*"],
-      "@assets/*": ["src/*"],
       "@utils/*": ["src/utils/*"],
       "@hooks/*": ["src/hooks/*"],
       "@store/*": ["src/store/*"],
