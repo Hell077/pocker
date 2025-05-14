@@ -330,7 +330,6 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
-	// 🏆 Один не фолд — победа
 	if notFolded == 1 {
 		for _, id := range state.PlayerOrder {
 			if !state.PlayerFolded[id] {
@@ -342,14 +341,15 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 			}
 		}
 	}
+	state.CurrentPlayer = ""
 
-	// Все в all-in или фолд — закончить раунд и показать победителя
 	if len(canAct) == 0 {
 		if state.RoundStage == "river" || state.RoundStage == "showdown" {
 			winner, desc := EvaluateWinner(state)
 			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🏆 %s wins with %s", winner, desc))
 			state.RoundStage = "ended"
 			state.GameStarted = false
+			state.CurrentPlayer = ""
 			return
 		} else {
 			NextStage(state)
