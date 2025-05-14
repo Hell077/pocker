@@ -61,15 +61,16 @@ type RoomState struct {
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
-	logger := workflow.GetLogger(ctx)
+	baseCtx := ctx
+	logger := workflow.GetLogger(baseCtx)
+
 	state := &RoomState{
 		RoomID:    roomID,
 		Players:   make(map[string]bool),
 		MoveLog:   []string{},
-		StartTime: workflow.Now(ctx),
+		StartTime: workflow.Now(baseCtx),
 	}
 
-	// вспомогательные переменные
 	var shouldTerminate bool
 	var cancelTimer workflow.CancelFunc
 	var emptyRoomTimer workflow.Future
@@ -77,21 +78,18 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	var cancelReadyTimer workflow.CancelFunc
 	hasHadPlayers := false
 
-	// внешние сигналы
-	startGameChan := workflow.GetSignalChannel(ctx, "start-game")
-	joinChan := workflow.GetSignalChannel(ctx, "join-room")
-	leaveChan := workflow.GetSignalChannel(ctx, "leave-room")
-	moveChan := workflow.GetSignalChannel(ctx, "player-move")
-	terminateChan := workflow.GetSignalChannel(ctx, "terminate-game")
-	dealCardsChan := workflow.GetSignalChannel(ctx, "deal-cards")
-	readyChan := workflow.GetSignalChannel(ctx, "player-ready")
-
-	// внутренний канал для автозапуска игры
-	internalStartGameChan := workflow.NewChannel(ctx)
+	startGameChan := workflow.GetSignalChannel(baseCtx, "start-game")
+	joinChan := workflow.GetSignalChannel(baseCtx, "join-room")
+	leaveChan := workflow.GetSignalChannel(baseCtx, "leave-room")
+	moveChan := workflow.GetSignalChannel(baseCtx, "player-move")
+	terminateChan := workflow.GetSignalChannel(baseCtx, "terminate-game")
+	dealCardsChan := workflow.GetSignalChannel(baseCtx, "deal-cards")
+	readyChan := workflow.GetSignalChannel(baseCtx, "player-ready")
+	internalStartGameChan := workflow.NewBufferedChannel(baseCtx, 1)
 
 	tick := time.Minute * 2
 
-	_ = workflow.SetQueryHandler(ctx, "available-actions", func(userID string) ([]string, error) {
+	_ = workflow.SetQueryHandler(baseCtx, "available-actions", func(userID string) ([]string, error) {
 		if _, ok := state.Players[userID]; !ok {
 			return nil, fmt.Errorf("player %s not in room", userID)
 		}
@@ -106,11 +104,11 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		if hasHadPlayers && len(state.Players) == 0 && emptyRoomTimer == nil {
 			logger.Info("⌛ No players in room — starting 30s termination timer")
 			var cancelCtx workflow.Context
-			cancelCtx, cancelTimer = workflow.WithCancel(ctx)
+			cancelCtx, cancelTimer = workflow.WithCancel(baseCtx)
 			emptyRoomTimer = workflow.NewTimer(cancelCtx, 30*time.Second)
 		}
 
-		selector := workflow.NewSelector(ctx)
+		selector := workflow.NewSelector(baseCtx)
 
 		if emptyRoomTimer != nil {
 			selector.AddFuture(emptyRoomTimer, func(f workflow.Future) {
@@ -122,25 +120,25 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		if readyTimer != nil {
 			selector.AddFuture(readyTimer, func(f workflow.Future) {
 				logger.Info("✅ Ready timer fired — signaling local start-game")
-				internalStartGameChan.Send(ctx, struct{}{})
+				internalStartGameChan.Send(baseCtx, struct{}{}) // 🔧
 				readyTimer = nil
 			})
 		}
 
 		selector.AddReceive(startGameChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s StartGameSignal
-			c.Receive(ctx, &s)
-			handleStartGame(ctx, state, roomID, logger)
+			c.Receive(baseCtx, &s)
+			handleStartGame(baseCtx, state, roomID, logger)
 		})
 
 		selector.AddReceive(internalStartGameChan, func(c workflow.ReceiveChannel, _ bool) {
-			c.Receive(ctx, nil)
-			handleStartGame(ctx, state, roomID, logger)
+			c.Receive(baseCtx, nil)
+			handleStartGame(baseCtx, state, roomID, logger)
 		})
 
 		selector.AddReceive(joinChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s JoinRoomSignal
-			c.Receive(ctx, &s)
+			c.Receive(baseCtx, &s)
 
 			if _, alreadyIn := state.Players[s.UserID]; alreadyIn {
 				logger.Warn("🚫 Duplicate user join attempt", "userID", s.UserID)
@@ -157,20 +155,20 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			}
 
 			logger.Info("👤 Player joined", "userID", s.UserID)
-			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("✅ Player %s joined the room", s.UserID))
+			sendToAllPlayers(baseCtx, state.RoomID, state.Players, fmt.Sprintf("✅ Player %s joined the room", s.UserID))
 		})
 
 		selector.AddReceive(leaveChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s LeaveRoomSignal
-			c.Receive(ctx, &s)
+			c.Receive(baseCtx, &s)
 			delete(state.Players, s.UserID)
 			logger.Info("👋 Player left", "userID", s.UserID)
-			sendToAllPlayers(ctx, state.RoomID, state.Players, "Player "+s.UserID+" left the room")
+			sendToAllPlayers(baseCtx, state.RoomID, state.Players, "Player "+s.UserID+" left the room")
 		})
 
 		selector.AddReceive(readyChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s PlayerReadySignal
-			c.Receive(ctx, &s)
+			c.Receive(baseCtx, &s)
 
 			if state.ReadyPlayers == nil {
 				state.ReadyPlayers = make(map[string]bool)
@@ -178,7 +176,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			state.ReadyPlayers[s.UserID] = s.Ready
 
 			logger.Info("🟢 Ready status updated", zap.String("userID", s.UserID), zap.Bool("ready", s.Ready))
-			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🎯 %s is %s", s.UserID, boolToReady(s.Ready)))
+			sendToAllPlayers(baseCtx, state.RoomID, state.Players, fmt.Sprintf("🎯 %s is %s", s.UserID, boolToReady(s.Ready)))
 
 			allReady := len(state.ReadyPlayers) == len(state.Players)
 			if allReady {
@@ -194,7 +192,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 				if readyTimer == nil {
 					logger.Info("⏳ All players ready. Starting 10s countdown...")
 					var cancelCtx workflow.Context
-					cancelCtx, cancelReadyTimer = workflow.WithCancel(ctx)
+					cancelCtx, cancelReadyTimer = workflow.WithCancel(baseCtx)
 					readyTimer = workflow.NewTimer(cancelCtx, 10*time.Second)
 				}
 			} else if readyTimer != nil {
@@ -206,21 +204,21 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 
 		selector.AddReceive(dealCardsChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s DealCardsSignal
-			c.Receive(ctx, &s)
-			futures := dealCards(ctx, state, roomID)
+			c.Receive(baseCtx, &s)
+			futures := dealCards(baseCtx, state, roomID)
 			for _, f := range futures {
-				_ = f.Get(ctx, nil)
+				_ = f.Get(baseCtx, nil)
 			}
 		})
 
 		selector.AddReceive(moveChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s PlayerMoveSignal
-			c.Receive(ctx, &s)
+			c.Receive(baseCtx, &s)
 
 			err := ValidatePlayerAction(s.Action, state, s.UserID, s.Args)
 			if err != nil {
 				logger.Warn("🚫 Invalid player action", zap.Error(err))
-				sendToPlayer(ctx, state.RoomID, s.UserID, fmt.Sprintf("❌ Invalid action: %s", err.Error()))
+				sendToPlayer(baseCtx, state.RoomID, s.UserID, fmt.Sprintf("❌ Invalid action: %s", err.Error()))
 				return
 			}
 
@@ -228,39 +226,45 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			state.MoveLog = append(state.MoveLog, entry)
 
 			logger.Info("✅ Player move", "userID", s.UserID, "action", s.Action)
-			sendToAllPlayers(ctx, state.RoomID, state.Players, entry)
+			sendToAllPlayers(baseCtx, state.RoomID, state.Players, entry)
 
 			state.HasActed[s.UserID] = true
 
 			handler := ActionRegistry[s.Action]
 			handler.Execute(state, s.UserID, s.Args)
 
-			NextTurn(ctx, state)
+			NextTurn(baseCtx, state)
 		})
 
 		selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s TerminateGameSignal
-			c.Receive(ctx, &s)
+			c.Receive(baseCtx, &s)
 			logger.Info("Terminate")
-			sendToAllPlayers(ctx, state.RoomID, state.Players, "🚫 Игра остановлена администратором")
+			sendToAllPlayers(baseCtx, state.RoomID, state.Players, "🚫 Игра остановлена администратором")
 			state.GameStarted = false
 			state.RoundStage = "ended"
 			shouldTerminate = true
 		})
 
-		selector.AddFuture(workflow.NewTimer(ctx, tick), func(f workflow.Future) {
+		selector.AddFuture(workflow.NewTimer(baseCtx, tick), func(f workflow.Future) {
 			logger.Info("⏰ Tick", "players", len(state.Players))
 		})
 
-		selector.Select(ctx)
+		selector.Select(baseCtx)
 
-		ao := workflow.ActivityOptions{StartToCloseTimeout: 2 * time.Second}
-		ctx = workflow.WithActivityOptions(ctx, ao)
+		for internalStartGameChan.ReceiveAsync(nil) {
+			logger.Info("🧨 Buffered message in internalStartGameChan — executing fallback start")
+			handleStartGame(baseCtx, state, roomID, logger)
+		}
+
+		activityCtx := workflow.WithActivityOptions(baseCtx, workflow.ActivityOptions{
+			StartToCloseTimeout: 2 * time.Second,
+		})
 		input := GameStateActivityInput{RoomID: state.RoomID, Players: state.Players, State: *state}
-		_ = workflow.ExecuteActivity(ctx, SendGameStateActivity, input).Get(ctx, nil)
+		_ = workflow.ExecuteActivity(activityCtx, SendGameStateActivity, input).Get(activityCtx, nil)
 	}
 
-	terminateGame(ctx, state, logger)
+	terminateGame(baseCtx, state, logger)
 	return nil
 }
 
