@@ -13,7 +13,8 @@ func GetAvailableActions(state *RoomState, userID string) []string {
 			actions = append(actions, "bet")
 		}
 	} else {
-		if chips >= currentBet {
+		toCall := currentBet - state.PlayerBets[userID]
+		if toCall > 0 && chips >= toCall {
 			actions = append(actions, "call")
 		}
 		if chips > currentBet {

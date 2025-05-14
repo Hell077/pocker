@@ -65,6 +65,8 @@ const PokerTable = () => {
           <div className="absolute w-[900px] h-[500px] rounded-full bg-gradient-to-br from-green-900 to-black border-4 border-green-700 shadow-[0_0_60px_#00ff7f55] z-10 pointer-events-none" />
 
           {gameState.players.map((player, index) => {
+              if (player.id === currentUserId) return null // 👈 пропускаем себя
+
               const angleDeg = (360 / seatCount) * index - 90
               const angleRad = (angleDeg * Math.PI) / 180
               const x = radiusX * Math.cos(angleRad)
@@ -80,20 +82,13 @@ const PokerTable = () => {
                       transform: 'translate(-50%, -50%)',
                   }}
                 >
-                    {/*<FancySeat*/}
-                    {/*  player={{*/}
-                    {/*      ...player,*/}
-                    {/*      cards: index === 0 ? myCards : ['BACK', 'BACK'],*/}
-                    {/*  }}*/}
-                    {/*  isYou={index === 0}*/}
-                    {/*  index={index}*/}
-                    {/*/>*/}
+                    {/* Тут можешь снова отрендерить FancySeat или другой UI */}
                 </div>
               )
           })}
 
           <ActionPanel />
-          <PlayerHand /> {/* 👈 панель своих карт внизу справа */}
+          <PlayerHand />
 
           {status === 'waiting' && !gameState.winnerId && (
             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
@@ -110,7 +105,6 @@ const PokerTable = () => {
             </div>
           )}
 
-          {/* Кнопка старта */}
           {status !== 'playing' && isOwner && (
             <div className="absolute bottom-6 z-50">
                 <button
