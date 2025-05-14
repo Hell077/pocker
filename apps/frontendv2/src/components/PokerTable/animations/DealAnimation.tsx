@@ -1,18 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Player } from '@/types/types'
+import PlayingCard from '../PlayingCard'
+import { parseCardSymbol } from '../useGameState'
 
 interface DealAnimationProps {
   players: Player[]
+  onComplete?: () => void
 }
 
-export default function DealAnimation({ players }: DealAnimationProps) {
-  const [dealtCards, setDealtCards] = useState<{ playerId: string; cardIndex: number }[]>([])
-  const animationTriggered = useRef(false)
+interface DealtCard {
+  playerId: string
+  cardIndex: number
+  symbol: string
+}
+
+export default function DealAnimation({ players, onComplete }: DealAnimationProps) {
+  const [dealtCards, setDealtCards] = useState<DealtCard[]>([])
 
   useEffect(() => {
-    if (!players.length || animationTriggered.current) return
-    animationTriggered.current = true
+    console.log('[🎬 DealAnimation] players:', players)
+    if (!players.length) return
 
     const total = players.length * 2
     let i = 0
@@ -20,18 +28,29 @@ export default function DealAnimation({ players }: DealAnimationProps) {
     const interval = setInterval(() => {
       const player = players[i % players.length]
       const cardIndex = Math.floor(i / players.length)
-      setDealtCards(prev => [...prev, { playerId: player.id, cardIndex }])
+      const raw = player.cards?.[cardIndex] ?? 'BACK'
+      const symbol = parseCardSymbol(raw)
+
+      setDealtCards((prev) => [
+        ...prev,
+        { playerId: player.id, cardIndex, symbol },
+      ])
+
       i++
-      if (i >= total) clearInterval(interval)
+      if (i >= total) {
+        clearInterval(interval)
+        console.log('✅ DealAnimation complete → calling onComplete()')
+        onComplete?.()
+      }
     }, 400)
 
     return () => clearInterval(interval)
-  }, [players])
+  }, [players, onComplete])
 
   return (
     <div className="absolute inset-0 pointer-events-none z-40">
-      {dealtCards.map(({ playerId, cardIndex }, i) => {
-        const index = players.findIndex(p => p.id === playerId)
+      {dealtCards.map(({ playerId, cardIndex, symbol }, i) => {
+        const index = players.findIndex((p) => p.id === playerId)
         if (index === -1) return null
 
         const angle = (360 / players.length) * index
@@ -42,12 +61,14 @@ export default function DealAnimation({ players }: DealAnimationProps) {
 
         return (
           <motion.div
-            key={playerId + '-' + cardIndex}
+            key={`${playerId}-${cardIndex}-${i}`}
             initial={{ x: 0, y: 0, opacity: 0, scale: 0.3 }}
             animate={{ x, y, opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: i * 0.1 }}
-            className="absolute left-1/2 top-1/2 w-12 h-16 bg-red-600 rounded-md shadow-lg"
-          />
+            className="absolute left-1/2 top-1/2"
+          >
+            <PlayingCard frontImage={symbol} delay={0} />
+          </motion.div>
         )
       })}
     </div>

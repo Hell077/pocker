@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { parseCardSymbol } from './useGameState'
 
 interface Props {
-  cards: string[] 
+  cards: string[]
 }
 
 export default function CommunityCards({ cards }: Props) {
@@ -29,7 +30,7 @@ export default function CommunityCards({ cards }: Props) {
       {cards.slice(0, visibleCount).map((card, idx) => (
         <motion.img
           key={idx}
-          src={`/PNG/${card}.png`}
+          src={`/cards/${parseCardSymbol(card)}.png`}
           alt={card}
           className="w-16 h-auto drop-shadow-lg rounded-md"
           initial={{ scale: 0.2, opacity: 0, y: -20 }}

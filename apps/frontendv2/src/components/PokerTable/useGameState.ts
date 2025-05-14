@@ -64,7 +64,7 @@ const getUserId = (): string => {
     }
 }
 
-const parseCardSymbol = (card: string): string => {
+export const parseCardSymbol = (card: string): string => {
     const unicodeToRankMap: Record<string, string> = {
         'A': 'A',
         'K': 'K',
@@ -255,8 +255,15 @@ export const useGameState = (): {
                 if (data.type === 'update-game-state') {
                     console.log('🔄 [WS] Обновление gameState:', data.payload)
 
-                    const normalized = normalizeGameState(data.payload)
                     const userID = getUserId()
+                    const normalized = normalizeGameState(data.payload)
+
+                    if (data.payload?.playerCards && data.payload.playerCards[userID]) {
+                        const rawCards = data.payload.playerCards[userID]
+                        const parsed = rawCards.map(parseCardSymbol)
+                        setMyCards(parsed)
+                        console.log('🂠 Личные карты (из JSON):', parsed)
+                    }
 
                     setGameState(() => {
                         const newTurn = normalized.currentTurn
@@ -289,6 +296,7 @@ export const useGameState = (): {
             } catch (e) {
                 console.warn('⚠️ [WS] Ошибка парсинга сообщения:', e)
             }
+
         }
 
         ws.onerror = (e) => {

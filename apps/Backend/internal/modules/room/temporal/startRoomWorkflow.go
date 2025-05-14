@@ -561,31 +561,35 @@ type GameStateActivityInput struct {
 }
 
 func SendGameStateActivity(ctx context.Context, input GameStateActivityInput) error {
-	message := map[string]interface{}{
-		"type": "update-game-state",
-		"payload": map[string]interface{}{
-			"players":        input.State.PlayerOrder,
-			"pot":            input.State.Pot,
-			"communityCards": input.State.BoardCards,
-			"roomId":         input.State.RoomID,
-			"status": func() string {
-				if input.State.GameStarted {
-					return "playing"
-				}
-				return "waiting"
-			}(),
-			"currentTurn": input.State.CurrentPlayer,
-			"winnerId":    "",
-		},
-	}
-	jsonData, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
+	for userID := range input.Players {
+		personalPayload := map[string]interface{}{
+			"type": "update-game-state",
+			"payload": map[string]interface{}{
+				"players":        input.State.PlayerOrder,
+				"pot":            input.State.Pot,
+				"communityCards": input.State.BoardCards,
+				"roomId":         input.State.RoomID,
+				"status": func() string {
+					if input.State.GameStarted {
+						return "playing"
+					}
+					return "waiting"
+				}(),
+				"currentTurn": input.State.CurrentPlayer,
+				"winnerId":    "",
+				"playerCards": map[string][]string{
+					userID: input.State.PlayerCards[userID],
+				},
+			},
+		}
 
-	for playerID := range input.Players {
-		if err := SendMessage(input.RoomID, playerID, string(jsonData)); err != nil {
-			return fmt.Errorf("failed to send message to %s: %w", playerID, err)
+		jsonData, err := json.Marshal(personalPayload)
+		if err != nil {
+			return err
+		}
+
+		if err := SendMessage(input.RoomID, userID, string(jsonData)); err != nil {
+			return fmt.Errorf("failed to send message to %s: %w", userID, err)
 		}
 	}
 

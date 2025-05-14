@@ -1,9 +1,9 @@
-import gold from '@/assets/chips/gold.png'
-import purple from '@/assets/chips/purple.png'
-import black from '@/assets/chips/black.png'
-import green from '@/assets/chips/green.png'
-import blue from '@/assets/chips/blue.png'
-import red from '@/assets/chips/red.png'
+import gold from '@public/chips/gold.png'
+import purple from '@public/chips/purple.png'
+import black from '@public/chips/black.png'
+import green from '@public/chips/green.png'
+import blue from '@public/chips/blue.png'
+import red from '@public/chips/red.png'
 
 interface Chip {
   color: string
