@@ -378,7 +378,13 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 				state.RoundStage = "ended"
 				state.GameStarted = false
 				state.CurrentPlayer = ""
-				_ = workflow.ExecuteActivity(ctx, SendWinnerPayloadActivity, state.RoomID, id, state.Players, *state).Get(ctx, nil)
+
+				ao := workflow.ActivityOptions{
+					StartToCloseTimeout: 5 * time.Second,
+				}
+				actCtx := workflow.WithActivityOptions(ctx, ao)
+
+				_ = workflow.ExecuteActivity(actCtx, SendWinnerPayloadActivity, state.RoomID, id, state.Players, *state).Get(actCtx, nil)
 				terminateGame(ctx, state, workflow.GetLogger(ctx))
 				return
 			}
