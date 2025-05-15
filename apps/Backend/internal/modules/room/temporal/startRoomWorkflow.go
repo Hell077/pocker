@@ -6,6 +6,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
+	"poker/internal/modules/room/manager"
 	"poker/internal/modules/room/repo"
 	"poker/packages/database"
 	"strings"
@@ -172,20 +173,50 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			}
 			state.ReadyPlayers[s.UserID] = s.Ready
 
-			logger.Info("🟢 Ready status updated", zap.String("userID", s.UserID), zap.Bool("ready", s.Ready))
-			sendToAllPlayers(baseCtx, state.RoomID, state.Players, fmt.Sprintf("🎯 %s is %s", s.UserID, boolToReady(s.Ready)))
+			logger.Info("🟢 Ready status updated",
+				zap.String("userID", s.UserID),
+				zap.Bool("ready", s.Ready),
+			)
 
+			// 🔁 Собираем полную карту готовности
+			statusPayload := make(map[string]bool)
+			for uid, r := range state.ReadyPlayers {
+				statusPayload[uid] = r
+			}
+
+			// 📤 Отправляем через активность
+			ao := workflow.ActivityOptions{
+				StartToCloseTimeout: time.Second * 5,
+			}
+			actCtx := workflow.WithActivityOptions(baseCtx, ao)
+
+			input := SendStatusInput{
+				RoomID:  state.RoomID,
+				Payload: statusPayload,
+			}
+
+			err := workflow.ExecuteActivity(actCtx, SendStatusToAllActivity, input).Get(actCtx, nil)
+			if err != nil {
+				logger.Error("❌ Failed to broadcast ready status", zap.Error(err))
+			}
+
+			// ✅ Проверка на allReady
 			allReady := len(state.ReadyPlayers) == len(state.Players)
-			if allReady {
-				for _, ok := range state.ReadyPlayers {
-					if !ok {
-						allReady = false
-						break
-					}
+			for _, r := range state.ReadyPlayers {
+				if !r {
+					allReady = false
+					break
 				}
 			}
 
+			// 🎮 Старт таймера
 			if allReady {
+				if len(state.Players) < 2 {
+					logger.Warn("⚠️ Not enough players to start the game.")
+					manager.Manager.Broadcast(state.RoomID, "🚫 Minimum 2 players required to start the game.")
+					return
+				}
+
 				if readyTimer == nil {
 					logger.Info("⏳ All players ready. Starting 10s countdown...")
 					var cancelCtx workflow.Context
@@ -193,6 +224,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 					readyTimer = workflow.NewTimer(cancelCtx, 10*time.Second)
 				}
 			} else if readyTimer != nil {
+				// ❌ Кто-то отменил готовность — остановить таймер
 				cancelReadyTimer()
 				readyTimer = nil
 				logger.Info("❌ Countdown cancelled. Not all players are ready anymore.")

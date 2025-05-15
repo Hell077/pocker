@@ -66,3 +66,13 @@ func DisconnectAllUsersActivity(ctx context.Context, roomID string) error {
 	logger.Info("✅ All users disconnected", zap.String("roomID", roomID))
 	return nil
 }
+
+type SendStatusInput struct {
+	RoomID  string
+	Payload map[string]bool
+}
+
+func SendStatusToAllActivity(ctx context.Context, input SendStatusInput) error {
+	manager.Manager.BroadcastJSON(input.RoomID, input.Payload)
+	return nil
+}

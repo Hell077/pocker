@@ -8,9 +8,15 @@ import ConnectedPlayersPanel from './ConnectedPlayersPanel'
 import { useState } from 'react'
 import axios from 'axios'
 import { API_URL } from '@/env/api.ts'
+import FancySeat from '@components/PokerTable/FancySeat.tsx'
 
 const PokerTable = () => {
-    const { gameState, sendReadyStatus } = useGameContext()
+    const {
+        gameState,
+        sendReadyStatus,
+        setReadyStatus,
+    } = useGameContext()
+
     const seatCount = gameState.players.length
     const roomId = gameState.roomId
     const status = gameState.status
@@ -29,6 +35,13 @@ const PokerTable = () => {
         const next = !ready
         setReady(next)
         sendReadyStatus(next)
+
+        if (currentUserId) {
+            setReadyStatus((prev) => ({
+                ...prev,
+                [currentUserId]: next,
+            }))
+        }
     }
 
     const handleStartGame = async () => {
@@ -52,12 +65,16 @@ const PokerTable = () => {
       <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
           <TableBackground />
           <ConnectedPlayersPanel />
+
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
               <div className="relative flex flex-col items-center">
                   <div className="flex justify-center gap-2">
                       <CommunityCards cards={gameState.communityCards} />
                   </div>
-                  <div className="absolute top-full mt-2" style={{ left: '50%', transform: 'translate(-54%, 0)' }}>
+                  <div
+                    className="absolute top-full mt-2"
+                    style={{ left: '50%', transform: 'translate(-54%, 0)' }}
+                  >
                       <Pot amount={gameState.pot} />
                   </div>
               </div>
@@ -66,7 +83,7 @@ const PokerTable = () => {
           <div className="absolute w-[900px] h-[500px] rounded-full bg-gradient-to-br from-green-900 to-black border-4 border-green-700 shadow-[0_0_60px_#00ff7f55] z-10 pointer-events-none" />
 
           {gameState.players.map((player, index) => {
-              if (player.id === currentUserId) return null // 👈 пропускаем себя
+              if (player.id === currentUserId) return null
 
               const angleDeg = (360 / seatCount) * index - 90
               const angleRad = (angleDeg * Math.PI) / 180
@@ -83,7 +100,7 @@ const PokerTable = () => {
                       transform: 'translate(-50%, -50%)',
                   }}
                 >
-                    {/* Тут можешь снова отрендерить FancySeat или другой UI */}
+                    <FancySeat player={player} isYou={false} index={index} />
                 </div>
               )
           })}

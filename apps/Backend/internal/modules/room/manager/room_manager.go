@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gofiber/contrib/websocket"
 	"sync"
@@ -32,6 +33,24 @@ func (m *ConnectionManager) Add(roomID, userID string, conn *websocket.Conn) boo
 
 	m.rooms[roomID][userID] = conn
 	return true
+}
+
+func (m *ConnectionManager) BroadcastJSON(roomID string, data interface{}) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	msgBytes, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+
+	if room, ok := m.rooms[roomID]; ok {
+		for _, conn := range room {
+			if conn != nil {
+				_ = conn.WriteMessage(websocket.TextMessage, msgBytes)
+			}
+		}
+	}
 }
 
 func (m *ConnectionManager) GetUsersInRoom(roomID string) []string {

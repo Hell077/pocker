@@ -23,6 +23,7 @@ func (m *RoomModule) Register(w worker.Worker) {
 	w.RegisterActivity(SaveGameHistoryActivity)
 	w.RegisterActivity(SendCardToUserActivity)
 	w.RegisterActivity(SendGameStateActivity)
+	w.RegisterActivity(SendStatusToAllActivity)
 	w.RegisterActivity(DisconnectAllUsersActivity)
 	w.RegisterActivity(SendWinnerPayloadActivity)
 }
