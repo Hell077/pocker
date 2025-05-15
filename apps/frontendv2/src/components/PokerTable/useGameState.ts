@@ -109,17 +109,26 @@ export const useGameState = () => {
   const [myCards, setMyCards] = useState<string[]>([])
   const [availableActions, setAvailableActions] = useState<string[]>([])
   const [readyStatus, setReadyStatus] = useState<Record<string, boolean>>({})
+  const requestsRef = useRef(0)
+  const MAX_REQUESTS = 3
+
 
   const wsRef = useRef<WebSocket | null>(null)
   const lastFetchedTurnRef = useRef<string | null>(null)
 
   const fetchAvailableActions = async () => {
+    if (requestsRef.current >= MAX_REQUESTS) {
+      console.warn('⛔ Достигнут лимит запросов available-actions')
+      return
+    }
+
     const token = localStorage.getItem('accessToken')
     const userID = getUserId()
     const roomID = gameState.roomId
     if (!token || !userID || !roomID) return
 
     try {
+      requestsRef.current += 1
       const res = await axios.get<AvailableActionsResponse>(
         `${API_URL}/room/available-actions?roomID=${roomID}&userID=${userID}`,
         { headers: { Authorization: token } }
@@ -165,7 +174,9 @@ export const useGameState = () => {
     wsRef.current = ws
 
     ws.onmessage = async (event) => {
+      requestsRef.current = 0
       const text = event.data
+
 
       // 🎴 Личные карты
       if (text.startsWith('🎴 Your cards:')) {
