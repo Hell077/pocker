@@ -20,8 +20,8 @@ type GC struct {
 }
 
 func (m *GC) Init(c client.Client) error {
-	if logger == nil {
-		logger = zap.NewExample()
+	if err := service.GcScheduler(c); err != nil {
+		return err
 	}
 	m.service = service.NewGCService(repo.NewGCRepo(database.DB), logger)
 	return nil
