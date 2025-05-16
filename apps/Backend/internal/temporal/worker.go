@@ -6,6 +6,7 @@ import (
 	"go.temporal.io/sdk/worker"
 	"log"
 	daily_rewards "poker/internal/modules/daily_rewards/temporal"
+	gc_temporal "poker/internal/modules/garbage_collector/temporal"
 	room_temporal "poker/internal/modules/room/temporal"
 	//"user/internal/modules/user"
 )
@@ -14,6 +15,7 @@ func StartWorkersWithContext(ctx context.Context, c client.Client) {
 	modules := []TemporalModule{
 		room_temporal.NewRoomTemporalModule(),
 		daily_rewards.NewRewardTemporalModule(),
+		gc_temporal.NewGcTemporalModule(),
 	}
 
 	var workers []worker.Worker
