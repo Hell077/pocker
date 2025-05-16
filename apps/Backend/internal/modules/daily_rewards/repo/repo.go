@@ -29,7 +29,7 @@ func NewRewardRepo(db *gorm.DB) DailyRewardRepo {
 }
 
 func (r DailyRewardRepo) GetDailyReward() (database.CurrentDayReward, error) {
-	loc := time.FixedZone("GMT-14", 14*60*60)
+	loc := time.FixedZone("UTC+14", 14*60*60)
 	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	utcDate := today.UTC()
 
@@ -83,7 +83,7 @@ func (r DailyRewardRepo) CreateTodayRewardIfNotExists() error {
 }
 
 func (r DailyRewardRepo) CreateReward() error {
-	loc := time.FixedZone("GMT-14", 14*60*60)
+	loc := time.FixedZone("UTC+14", 14*60*60)
 	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	utcDate := today.UTC()
 
