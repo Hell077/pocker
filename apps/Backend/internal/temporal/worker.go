@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"go.uber.org/zap"
 	"log"
 	daily_rewards "poker/internal/modules/daily_rewards/temporal"
 	gc_temporal "poker/internal/modules/garbage_collector/temporal"
@@ -11,11 +12,11 @@ import (
 	//"user/internal/modules/user"
 )
 
-func StartWorkersWithContext(ctx context.Context, c client.Client) {
+func StartWorkersWithContext(ctx context.Context, c client.Client, logger *zap.Logger) {
 	modules := []TemporalModule{
 		room_temporal.NewRoomTemporalModule(),
 		daily_rewards.NewRewardTemporalModule(),
-		gc_temporal.NewGcTemporalModule(),
+		gc_temporal.NewGcTemporalModule(logger),
 	}
 
 	var workers []worker.Worker

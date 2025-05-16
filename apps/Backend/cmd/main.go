@@ -53,7 +53,7 @@ func main() {
 
 	go func() {
 		logger.Info("🌀 Temporal workers started")
-		temporal.StartWorkersWithContext(ctx, temporalClient)
+		temporal.StartWorkersWithContext(ctx, temporalClient, logger)
 	}()
 
 	// Start HTTP server

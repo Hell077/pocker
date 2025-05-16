@@ -13,17 +13,17 @@ import (
 
 const TaskQueue = "GC_QUEUE"
 
-var logger *zap.Logger
-
 type GC struct {
 	service *service.GCService
+	logger  *zap.Logger
 }
 
 func (m *GC) Init(c client.Client) error {
 	if err := service.GcScheduler(c); err != nil {
 		return err
 	}
-	m.service = service.NewGCService(repo.NewGCRepo(database.DB), logger)
+
+	m.service = service.NewGCService(repo.NewGCRepo(database.DB), m.logger)
 	return nil
 }
 
@@ -37,8 +37,10 @@ func (m *GC) Register(w worker.Worker) {
 	w.RegisterWorkflow(workflow.GcWorkflow)
 }
 
-func NewGcTemporalModule() *GC {
-	return &GC{}
+func NewGcTemporalModule(logger *zap.Logger) *GC {
+	return &GC{
+		logger: logger,
+	}
 }
 
 type TemporalModule interface {
