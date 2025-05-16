@@ -1,5 +1,5 @@
 import PlayerCards from './PlayerCards'
-import ChipStack from './ChipStack'
+
 
 interface SeatProps {
   index: number
@@ -30,7 +30,6 @@ const Seat = ({ index }: SeatProps) => {
         className="w-14 h-14 rounded-full border-2 border-pink-500 shadow-lg"
       />
       <p className="mt-1 text-sm font-medium">{player.nickname}</p>
-      <ChipStack amount={player.chips} />
       {isYou && <PlayerCards />}
     </div>
   )

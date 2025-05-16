@@ -1,5 +1,5 @@
 import PlayingCard from './PlayingCard'
-import ChipStack from './ChipStack'
+
 
 interface Player {
   id: string
@@ -45,7 +45,7 @@ const FancySeat = ({ player, isYou }: Props) => {
         </div>
       )}
 
-      <ChipStack amount={player.chips} />
+
     </div>
   )
 }

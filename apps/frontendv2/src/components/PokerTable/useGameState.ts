@@ -263,6 +263,10 @@ export const useGameState = () => {
     }
   }, [])
 
+  const winnerPlayer = gameState.winnerId
+    ? gameState.players.find(p => p.id === gameState.winnerId) ?? null
+    : null
+
   return {
     gameState,
     setGameState,
@@ -273,5 +277,6 @@ export const useGameState = () => {
     myCards,
     readyStatus,
     setReadyStatus,
+    winnerPlayer,
   }
 }
