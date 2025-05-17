@@ -53,6 +53,7 @@ type RoomState struct {
 	HasActed      map[string]bool
 	PlayerBets    map[string]int64
 	ReadyPlayers  map[string]bool
+	Terminated    bool
 }
 
 func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
@@ -67,7 +68,6 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	}
 
 	var (
-		shouldTerminate  bool
 		cancelTimer      workflow.CancelFunc
 		emptyRoomTimer   workflow.Future
 		readyTimer       workflow.Future
@@ -94,7 +94,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 	})
 
 	for {
-		if shouldTerminate {
+		if state.Terminated {
 			break
 		}
 
@@ -110,7 +110,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		if emptyRoomTimer != nil {
 			selector.AddFuture(emptyRoomTimer, func(f workflow.Future) {
 				logger.Info("🛑 Auto-termination timeout")
-				shouldTerminate = true
+				state.Terminated = true
 			})
 		}
 
@@ -236,7 +236,22 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			sendToAllPlayers(baseCtx, roomID, state.Players, entry)
 
 			handler := ActionRegistry[s.Action]
+			oldChips := state.PlayerChips[s.UserID]
 			handler.Execute(state, s.UserID, s.Args)
+			newChips := state.PlayerChips[s.UserID]
+			if newChips < oldChips {
+				amountSpent := oldChips - newChips
+				actCtx := workflow.WithActivityOptions(baseCtx, workflow.ActivityOptions{
+					StartToCloseTimeout: 5 * time.Second,
+				})
+				err := workflow.ExecuteActivity(actCtx, DeductChipsFromBalanceActivity, BalanceUpdateInput{
+					UserID: s.UserID,
+					Amount: amountSpent,
+				}).Get(actCtx, nil)
+				if err != nil {
+					logger.Error("❌ Failed to deduct balance", zap.String("userID", s.UserID), zap.Error(err))
+				}
+			}
 			state.HasActed[s.UserID] = true
 
 			if IsBettingRoundOver(state) {
@@ -260,7 +275,7 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 			sendToAllPlayers(baseCtx, roomID, state.Players, "🚫 Игра остановлена админом")
 			state.GameStarted = false
 			state.RoundStage = "ended"
-			shouldTerminate = true
+			state.Terminated = true
 		})
 
 		selector.AddFuture(workflow.NewTimer(baseCtx, tick), func(f workflow.Future) {

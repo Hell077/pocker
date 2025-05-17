@@ -449,7 +449,14 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 
 				_ = workflow.ExecuteActivity(actCtx, SendWinnerPayloadActivity, state.RoomID, id, state.Players, *state).Get(actCtx, nil)
 
+				// 💰 Зачислить победителю pot
+				_ = workflow.ExecuteActivity(actCtx, CreditWinningsActivity, BalanceUpdateInput{
+					UserID: id,
+					Amount: state.Pot,
+				}).Get(actCtx, nil)
+
 				terminateGame(ctx, state, workflow.GetLogger(ctx))
+				state.Terminated = true
 				return
 			}
 		}
@@ -479,9 +486,15 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 				*state,
 			).Get(actCtx, nil)
 
+			_ = workflow.ExecuteActivity(actCtx, CreditWinningsActivity, BalanceUpdateInput{
+				UserID: winner,
+				Amount: state.Pot,
+			}).Get(actCtx, nil)
+
 			state.RoundStage = "ended"
-			state.GameStarted = false
 			state.CurrentPlayer = ""
+			state.GameStarted = false
+			state.Terminated = true
 			terminateGame(ctx, state, workflow.GetLogger(ctx))
 			return
 		} else {
@@ -493,7 +506,6 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
-	// Следующий активный
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
@@ -508,7 +520,6 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 }
 
 func announceWinner(ctx workflow.Context, state *RoomState, winnerID string, logger log.Logger) {
-	chips := state.PlayerChips[winnerID]
 	message := fmt.Sprintf("Победитель: %s!", winnerID)
 
 	sendToAllPlayers(ctx, state.RoomID, state.Players, message)
@@ -522,7 +533,7 @@ func announceWinner(ctx workflow.Context, state *RoomState, winnerID string, log
 		RoomID:   state.RoomID,
 		WinnerID: winnerID,
 		Message:  message,
-		Amount:   chips,
+		Amount:   state.Pot,
 	}).Get(actCtx, nil)
 
 	if err != nil {
