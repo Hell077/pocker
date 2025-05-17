@@ -6,6 +6,7 @@ import ActionPanel from './ActionPanel'
 import PlayerHand from './PlayerHand'
 import ConnectedPlayersPanel from './ConnectedPlayersPanel'
 import { useState } from 'react'
+import { WinnerModal } from './WinnerBanner.tsx'
 import axios from 'axios'
 import { API_URL } from '@/env/api.ts'
 import FancySeat from '@components/PokerTable/FancySeat.tsx'
@@ -133,6 +134,7 @@ const PokerTable = () => {
                 </button>
             </div>
           )}
+          <WinnerModal />
       </div>
     )
 }

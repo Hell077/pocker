@@ -10,6 +10,9 @@ import (
 	"go.uber.org/zap"
 	"math/rand"
 	"poker/internal/modules/room/manager"
+	"poker/internal/modules/room/repo"
+	"poker/packages/database"
+	"sort"
 	"time"
 )
 
@@ -92,26 +95,80 @@ func IsBettingRoundOver(state *RoomState) bool {
 	return true
 }
 
-func EvaluateWinner(state *RoomState) (string, string) {
-	var best HandScore
-	var winner string
+func EvaluateWinner(state *RoomState) ([]string, HandScore) {
+	type playerResult struct {
+		ID    string
+		Score HandScore
+	}
+
+	var results []playerResult
 
 	for _, playerID := range state.PlayerOrder {
 		if state.PlayerFolded[playerID] {
 			continue
 		}
-
 		cards := append([]string{}, state.PlayerCards[playerID]...)
 		cards = append(cards, state.BoardCards...)
 
 		score := EvaluateHand(cards)
-		if winner == "" || score.Rank > best.Rank {
-			best = score
-			winner = playerID
+		results = append(results, playerResult{ID: playerID, Score: score})
+	}
+
+	if len(results) == 0 {
+		return nil, HandScore{}
+	}
+
+	best := results[0]
+	winners := []string{best.ID}
+
+	for i := 1; i < len(results); i++ {
+		comp := compareHands(results[i].Score, best.Score)
+		if comp > 0 {
+			best = results[i]
+			winners = []string{best.ID}
+		} else if comp == 0 {
+			winners = append(winners, results[i].ID)
 		}
 	}
 
-	return winner, best.Desc
+	return winners, best.Score
+}
+
+// compareHands возвращает:
+//
+//	1 если h1 > h2
+//	0 если h1 == h2
+//
+// -1 если h1 < h2
+func compareHands(h1, h2 HandScore) int {
+	if h1.Rank > h2.Rank {
+		return 1
+	}
+	if h1.Rank < h2.Rank {
+		return -1
+	}
+
+	getRanks := func(cards []string) []int {
+		ranks := make([]int, 0, len(cards))
+		for _, card := range cards {
+			ranks = append(ranks, rankMap[extractRank(card)])
+		}
+		sort.Sort(sort.Reverse(sort.IntSlice(ranks)))
+		return ranks
+	}
+
+	r1 := getRanks(h1.Cards)
+	r2 := getRanks(h2.Cards)
+
+	for i := 0; i < len(r1) && i < len(r2); i++ {
+		if r1[i] > r2[i] {
+			return 1
+		} else if r1[i] < r2[i] {
+			return -1
+		}
+	}
+
+	return 0 // абсолютная ничья
 }
 
 func sendToPlayer(ctx workflow.Context, roomID, userID, message string) {
@@ -237,13 +294,6 @@ func SendMessage(roomID, userID, message string) error {
 	return conn.WriteMessage(1, []byte(message))
 }
 
-func boolToReady(b bool) string {
-	if b {
-		return "✅ Ready"
-	}
-	return "Not Ready"
-}
-
 func handleStartGame(ctx workflow.Context, state *RoomState, roomID string, logger log.Logger) {
 	if len(state.Players) == 0 {
 		logger.Warn("Cannot start game: no players in room")
@@ -260,9 +310,22 @@ func handleStartGame(ctx workflow.Context, state *RoomState, roomID string, logg
 	state.HasActed = make(map[string]bool)
 	state.PlayerBets = make(map[string]int64)
 
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Second,
+	}
+	actCtx := workflow.WithActivityOptions(ctx, ao)
+
 	for id := range state.Players {
 		state.PlayerOrder = append(state.PlayerOrder, id)
-		state.PlayerChips[id] = 1000
+
+		var balance int64
+		err := workflow.ExecuteActivity(actCtx, GetPlayerBalanceActivity, id).Get(actCtx, &balance)
+		if err != nil {
+			logger.Error("❌ Failed to get player balance", zap.String("userID", id), zap.Error(err))
+			balance = 0
+		}
+
+		state.PlayerChips[id] = balance
 		state.PlayerFolded[id] = false
 		state.PlayerAllIn[id] = false
 	}
@@ -315,5 +378,160 @@ func SendWinnerPayloadActivity(ctx context.Context, roomID, winnerID string, pla
 			return err
 		}
 	}
+	return nil
+}
+
+func terminateGame(ctx workflow.Context, state *RoomState, logger log.Logger) {
+	logger.Info("💾 Saving history")
+
+	ao := workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Second}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	if err := workflow.ExecuteActivity(ctx, SaveGameHistoryActivity, state).Get(ctx, nil); err != nil {
+		logger.Error("❌ Failed to save history", "err", err)
+	}
+
+	if len(state.Players) > 0 {
+		err := workflow.ExecuteActivity(ctx, DisconnectAllUsersActivity, state.RoomID).Get(ctx, nil)
+		if err != nil {
+			logger.Error("❌ Failed to disconnect users", "err", err)
+		}
+	} else {
+		logger.Info("ℹ️ No players to disconnect")
+	}
+	rr := repo.NewRoomRepo(database.DB)
+	err := rr.UpdateRoomStatus(state.RoomID, "Done")
+	if err != nil {
+		return
+	}
+
+	logger.Info("🏁 Game ended. Terminating workflow...")
+}
+
+func NextTurn(ctx workflow.Context, state *RoomState) {
+	n := len(state.PlayerOrder)
+	if n == 0 {
+		return
+	}
+
+	currentIdx := -1
+	for i, id := range state.PlayerOrder {
+		if id == state.CurrentPlayer {
+			currentIdx = i
+			break
+		}
+	}
+
+	notFolded := 0
+	canAct := []string{}
+	for _, id := range state.PlayerOrder {
+		if !state.PlayerFolded[id] {
+			notFolded++
+			if !state.PlayerAllIn[id] {
+				canAct = append(canAct, id)
+			}
+		}
+	}
+
+	if notFolded == 1 {
+		for _, id := range state.PlayerOrder {
+			if !state.PlayerFolded[id] {
+				announceWinner(ctx, state, id, workflow.GetLogger(ctx))
+
+				state.RoundStage = "ended"
+				state.GameStarted = false
+				state.CurrentPlayer = ""
+
+				ao := workflow.ActivityOptions{
+					StartToCloseTimeout: 5 * time.Second,
+				}
+				actCtx := workflow.WithActivityOptions(ctx, ao)
+
+				_ = workflow.ExecuteActivity(actCtx, SendWinnerPayloadActivity, state.RoomID, id, state.Players, *state).Get(actCtx, nil)
+
+				terminateGame(ctx, state, workflow.GetLogger(ctx))
+				return
+			}
+		}
+	}
+
+	state.CurrentPlayer = ""
+
+	if len(canAct) == 0 {
+		if state.RoundStage == "river" || state.RoundStage == "showdown" {
+			winners, _ := EvaluateWinner(state)
+			winner := winners[0]
+
+			announceWinner(ctx, state, winner, workflow.GetLogger(ctx))
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🏆 %s wins with %s", winner))
+
+			ao := workflow.ActivityOptions{
+				StartToCloseTimeout: 5 * time.Second,
+			}
+			actCtx := workflow.WithActivityOptions(ctx, ao)
+
+			_ = workflow.ExecuteActivity(
+				actCtx,
+				SendWinnerPayloadActivity,
+				state.RoomID,
+				winner,
+				state.Players,
+				*state,
+			).Get(actCtx, nil)
+
+			state.RoundStage = "ended"
+			state.GameStarted = false
+			state.CurrentPlayer = ""
+			terminateGame(ctx, state, workflow.GetLogger(ctx))
+			return
+		} else {
+			NextStage(state)
+			DealBoardCards(state)
+			sendToAllPlayers(ctx, state.RoomID, state.Players, fmt.Sprintf("🃏 New stage: %s", state.RoundStage))
+			NextTurn(ctx, state)
+			return
+		}
+	}
+
+	// Следующий активный
+	for i := 1; i <= n; i++ {
+		nextIdx := (currentIdx + i) % n
+		next := state.PlayerOrder[nextIdx]
+		if !state.PlayerFolded[next] && !state.PlayerAllIn[next] {
+			state.CurrentPlayer = next
+			sendToPlayer(ctx, state.RoomID, state.CurrentPlayer, "🟢 Your turn")
+			return
+		}
+	}
+
+	state.CurrentPlayer = ""
+}
+
+func announceWinner(ctx workflow.Context, state *RoomState, winnerID string, logger log.Logger) {
+	chips := state.PlayerChips[winnerID]
+	message := fmt.Sprintf("Победитель: %s!", winnerID)
+
+	sendToAllPlayers(ctx, state.RoomID, state.Players, message)
+
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: time.Second * 5,
+	}
+	actCtx := workflow.WithActivityOptions(ctx, ao)
+
+	err := workflow.ExecuteActivity(actCtx, SendWinnerAnnouncementActivity, SendWinnerInput{
+		RoomID:   state.RoomID,
+		WinnerID: winnerID,
+		Message:  message,
+		Amount:   chips,
+	}).Get(actCtx, nil)
+
+	if err != nil {
+		logger.Error("Failed to send winner announcement", zap.Error(err))
+	}
+}
+
+func updateUserBalance(userID string, delta int64) error {
+
+	fmt.Printf("🔄 Updating balance for user %s by %+d\n", userID, delta)
 	return nil
 }

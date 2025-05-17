@@ -2,11 +2,14 @@ package room_temporal
 
 import (
 	"context"
+	"fmt"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 	"log"
+	authService "poker/internal/modules/auth/service"
 	"poker/internal/modules/room/manager"
+	"strconv"
 	"time"
 )
 
@@ -74,5 +77,91 @@ type SendStatusInput struct {
 
 func SendStatusToAllActivity(ctx context.Context, input SendStatusInput) error {
 	manager.Manager.BroadcastJSON(input.RoomID, input.Payload)
+	return nil
+}
+
+type SendWinnerInput struct {
+	RoomID   string
+	WinnerID string
+	Message  string
+	Amount   int64
+}
+
+func SendWinnerAnnouncementActivity(ctx context.Context, input SendWinnerInput) error {
+	payload := map[string]interface{}{
+		"type":     "winner",
+		"winnerId": input.WinnerID,
+		"message":  input.Message,
+		"amount":   input.Amount,
+	}
+	manager.Manager.BroadcastJSON(input.RoomID, payload)
+	return nil
+}
+
+type BalanceUpdateInput struct {
+	UserID string
+	Amount int64
+}
+
+type RoomActivities struct {
+	AuthService authService.AuthService
+}
+
+var defaultRoomActivities *RoomActivities // 👈 глобальная прокси
+
+func GetPlayerBalanceActivity(ctx context.Context, userID string) (int64, error) {
+	return defaultRoomActivities.GetPlayerBalanceActivity(ctx, userID)
+}
+
+func DeductChipsFromBalanceActivity(ctx context.Context, input BalanceUpdateInput) error {
+	return defaultRoomActivities.DeductChipsFromBalanceActivity(ctx, input)
+}
+
+func CreditWinningsActivity(ctx context.Context, input BalanceUpdateInput) error {
+	return defaultRoomActivities.CreditWinningsActivity(ctx, input)
+}
+
+func (a *RoomActivities) GetPlayerBalanceActivity(ctx context.Context, userID string) (int64, error) {
+	account, err := a.AuthService.Me(userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get account: %w", err)
+	}
+
+	balance, err := strconv.ParseInt(account.AccountBalance.CurrentBalance, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid balance format: %w", err)
+	}
+
+	return balance, nil
+}
+
+func (a *RoomActivities) DeductChipsFromBalanceActivity(ctx context.Context, input BalanceUpdateInput) error {
+	return a.updateUserBalance(input.UserID, -input.Amount)
+}
+
+func (a *RoomActivities) CreditWinningsActivity(ctx context.Context, input BalanceUpdateInput) error {
+	return a.updateUserBalance(input.UserID, input.Amount)
+}
+
+func (a *RoomActivities) updateUserBalance(userID string, delta int64) error {
+	acc, err := a.AuthService.Me(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	balanceInt, err := strconv.ParseInt(acc.AccountBalance.CurrentBalance, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid balance format: %w", err)
+	}
+
+	newBalance := balanceInt + delta
+	if newBalance < 0 {
+		return fmt.Errorf("insufficient chips: current=%d, delta=%d", balanceInt, delta)
+	}
+
+	if err := a.AuthService.UpdateBalance(userID, newBalance); err != nil {
+		return fmt.Errorf("failed to update balance: %w", err)
+	}
+
 	return nil
 }

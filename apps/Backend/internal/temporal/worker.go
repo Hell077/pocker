@@ -9,12 +9,11 @@ import (
 	daily_rewards "poker/internal/modules/daily_rewards/temporal"
 	gc_temporal "poker/internal/modules/garbage_collector/temporal"
 	room_temporal "poker/internal/modules/room/temporal"
-	//"user/internal/modules/user"
 )
 
 func StartWorkersWithContext(ctx context.Context, c client.Client, logger *zap.Logger) {
 	modules := []TemporalModule{
-		room_temporal.NewRoomTemporalModule(),
+		room_temporal.NewRoomTemporalModule(logger),
 		daily_rewards.NewRewardTemporalModule(),
 		gc_temporal.NewGcTemporalModule(logger),
 	}

@@ -1,6 +1,7 @@
 package temporal
 
 import (
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ func (m *GC) TaskQueue() string {
 
 func (m *GC) Register(w worker.Worker) {
 	acts := activities.NewGCActivities(*m.service)
-	w.RegisterActivity(acts.StartGC)
+	w.RegisterActivityWithOptions(acts.StartGC, activity.RegisterOptions{Name: "StartGC"})
 	w.RegisterWorkflow(workflow.GcWorkflow)
 }
 

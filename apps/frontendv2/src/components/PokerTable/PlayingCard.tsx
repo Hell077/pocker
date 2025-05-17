@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import backImage from '@public/cards/Back.jpg'
+const backImage = '/cards/Back.jpg'
 
 interface Props {
-  frontImage: string // ожидаем значение уже в виде '7H', '2C', 'KD' и т.д.
+  frontImage: string
   delay?: number
 }
 
@@ -14,7 +14,7 @@ export default function PlayingCard({ frontImage, delay = 0 }: Props) {
   const frontSrc = `/cards/${normalized}.png`
   const isBackOnly = normalized === 'BACK'
 
-  console.log(`[🃏 PlayingCard] rendering card: ${normalized}`)
+  console.log(`[PlayingCard] rendering card: ${normalized}`)
 
   useEffect(() => {
     const timer = setTimeout(() => setFlipped(true), delay)
@@ -41,7 +41,7 @@ export default function PlayingCard({ frontImage, delay = 0 }: Props) {
           alt={normalized}
           className="absolute w-full h-full backface-hidden"
           style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
-          onError={() => console.warn(`❌ Не найден файл: ${frontSrc}`)}
+          onError={() => console.warn(`Не найден файл: ${frontSrc}`)}
         />
       )}
     </motion.div>

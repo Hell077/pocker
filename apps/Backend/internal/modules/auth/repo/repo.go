@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"gorm.io/gorm"
 	"poker/packages/database"
 )
@@ -10,6 +11,7 @@ type AuthRepo interface {
 	CreateBalance(balance *database.AccountBalance) error
 	GetAccountByEmail(email string) (*database.Account, error)
 	MeByID(id string) (database.Account, error)
+	UpdateBalance(userID string, newBalance int64) error
 }
 type authRepo struct {
 	db *gorm.DB
@@ -43,4 +45,10 @@ func (r *authRepo) MeByID(id string) (database.Account, error) {
 		return account, err
 	}
 	return account, nil
+}
+
+func (r *authRepo) UpdateBalance(userID string, newBalance int64) error {
+	return r.db.Model(&database.AccountBalance{}).
+		Where("user_id = ?", userID).
+		Update("current_balance", fmt.Sprintf("%d", newBalance)).Error
 }

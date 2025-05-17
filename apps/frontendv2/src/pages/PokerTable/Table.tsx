@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import PokerHeader from '@/components/header/header';
 import PokerFooter from '@/components/footer/footer';
-import PokerTable from '@/components/PokerTable/PokerTable.tsx';
 import { GameStateProvider } from '@components/PokerTable/GameStateContext.tsx';
+import PokerTable from '@components/PokerTable/PokerTable.tsx';
 
 export default function PokerTablePage() {
   const [uiVisible, setUiVisible] = useState(true);
@@ -41,6 +41,7 @@ export default function PokerTablePage() {
         <main className="flex-grow flex items-center justify-center">
           <PokerTable />
         </main>
+
       </GameStateProvider>
 
 
@@ -48,3 +49,4 @@ export default function PokerTablePage() {
     </div>
   );
 }
+
