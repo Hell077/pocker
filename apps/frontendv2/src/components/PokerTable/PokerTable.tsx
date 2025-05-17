@@ -10,6 +10,7 @@ import axios from 'axios'
 import { API_URL } from '@/env/api.ts'
 import FancySeat from '@components/PokerTable/FancySeat.tsx'
 import { useNavigate } from 'react-router-dom'
+import PlayerHand from '@components/PokerTable/PlayerHand.tsx';
 
 const PokerTable = () => {
     const {
@@ -167,7 +168,7 @@ const PokerTable = () => {
                 </button>
             </div>
           )}
-
+          <PlayerHand/>
           <WinnerModal />
       </div>
     )
