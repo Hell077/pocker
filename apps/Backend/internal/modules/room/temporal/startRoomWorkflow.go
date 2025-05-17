@@ -271,8 +271,23 @@ func StartRoomWorkflow(ctx workflow.Context, roomID string) error {
 		selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, _ bool) {
 			var s TerminateGameSignal
 			c.Receive(baseCtx, &s)
-			logger.Info("🛑 Terminate signal received")
-			sendToAllPlayers(baseCtx, roomID, state.Players, "🚫 Игра остановлена админом")
+			logger.Info("🛑 Terminate signal received — attempting graceful shutdown")
+
+			success := true
+			for playerID := range state.Players {
+				ok := sendToPlayerWithRetries(baseCtx, roomID, playerID, "🚫 Игра остановлена админом", 3)
+				if !ok {
+					success = false
+					logger.Warn("⚠️ Failed to notify player", zap.String("userID", playerID))
+				}
+			}
+
+			if !success {
+				logger.Warn("⚠️ Not all players received termination message — forcing termination")
+			} else {
+				logger.Info("✅ All players notified about termination")
+			}
+
 			state.GameStarted = false
 			state.RoundStage = "ended"
 			state.Terminated = true

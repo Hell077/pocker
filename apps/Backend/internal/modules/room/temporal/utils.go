@@ -546,3 +546,22 @@ func updateUserBalance(userID string, delta int64) error {
 	fmt.Printf("🔄 Updating balance for user %s by %+d\n", userID, delta)
 	return nil
 }
+
+func sendToPlayerWithRetries(ctx workflow.Context, roomID, userID, message string, maxAttempts int) bool {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 3 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 1.5,
+			MaximumAttempts:    int32(maxAttempts),
+		},
+	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	err := workflow.ExecuteActivity(ctx, SendMessageActivity, roomID, userID, message).Get(ctx, nil)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("❌ Could not send message to player after retries", zap.String("userID", userID), zap.Error(err))
+		return false
+	}
+	return true
+}

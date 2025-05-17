@@ -5,11 +5,14 @@ import Pot from './Pot'
 import ActionPanel from './ActionPanel'
 import PlayerHand from './PlayerHand'
 import ConnectedPlayersPanel from './ConnectedPlayersPanel'
-import { useState } from 'react'
+import { useEffect, useState } from 'react';
 import { WinnerModal } from './WinnerBanner.tsx'
 import axios from 'axios'
 import { API_URL } from '@/env/api.ts'
 import FancySeat from '@components/PokerTable/FancySeat.tsx'
+import { useNavigate } from 'react-router-dom';
+
+
 
 const PokerTable = () => {
     const {
@@ -17,6 +20,18 @@ const PokerTable = () => {
         sendReadyStatus,
         setReadyStatus,
     } = useGameContext()
+
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (gameState.winnerId) {
+            const timeout = setTimeout(() => {
+                navigate('/')
+            }, 8000)
+
+            return () => clearTimeout(timeout)
+        }
+    }, [gameState.winnerId, navigate])
 
     const seatCount = gameState.players.length
     const roomId = gameState.roomId

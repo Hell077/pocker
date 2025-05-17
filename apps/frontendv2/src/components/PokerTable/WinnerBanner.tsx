@@ -11,7 +11,7 @@ export const WinnerModal = () => {
       const timeout = setTimeout(() => {
         setVisible(false)
         setWinnerPayload(null)
-      }, 7000)
+      }, 7800)
 
       return () => clearTimeout(timeout)
     }

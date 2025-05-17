@@ -30,7 +30,14 @@ export const ru = {
     maxPlayers:'Макс. игроков:',
     ID: 'ID:',
     Status:'Статус:',
+    notEnoughBalance: 'Недостаточно монет. Нужно минимум 500 для входа в комнату.',
     Connect:'Подключиться'
+  },
+  errors: {
+    invalidUserData: 'Ошибка чтения данных пользователя.',
+    missingToken: 'Не найден токен или ID пользователя.',
+    failedToFetchUser: 'Не удалось получить данные пользователя.',
+    failedToFetch: 'Ошибка при получении баланса.',
   },
   connectRoomModal: {
     title: 'Подключиться к комнате',

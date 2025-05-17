@@ -6,15 +6,16 @@ import ConnectRoomModal from '@widgets/Connect/ConnectRoom';
 import { API_URL } from '@/env/api';
 import { ru } from '@lang/ru.ts';
 import { en } from '@lang/en.ts';
+import { useToast } from '@hooks/useToast.ts';
 
 const language = localStorage.getItem('lang') || 'en';
 const lang = language === 'ru' ? ru : en;
 
 interface Room {
-  Name:string
-  RoomID: string
-  Status: string
-  MaxPlayers?: number
+  Name: string;
+  RoomID: string;
+  Status: string;
+  MaxPlayers?: number;
 }
 
 export default function LobbyContent() {
@@ -22,6 +23,7 @@ export default function LobbyContent() {
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [rooms, setRooms] = useState([]);
   const navigate = useNavigate();
+  const toast = useToast(); // ✅ здесь правильно
 
   useEffect(() => {
     fetch(`${API_URL}/room/list`, {
@@ -31,14 +33,17 @@ export default function LobbyContent() {
     })
       .then((res) => res.json())
       .then((data) => setRooms(data.rooms || []))
-      .catch((err) => console.error('Failed to fetch rooms', err));
+      .catch((err) => {
+        toast.error('❌ Failed to fetch rooms');
+        console.error(err);
+      });
   }, []);
 
   const handleCreateRoom = (roomId: string) => {
     console.log('Room created:', roomId);
   };
 
-  const handleConnectRoom = (roomId: string) => {
+  const handleConnectRoom = async (roomId: string) => {
     const stored = localStorage.getItem('user');
     const token = localStorage.getItem('accessToken');
 
@@ -47,16 +52,40 @@ export default function LobbyContent() {
       const parsed = JSON.parse(stored || '{}');
       userID = parsed?.id;
     } catch (e) {
-      console.error('❌ Failed to parse user from localStorage', e);
-      return;
+      console.error('❌ JSON parse error', e);
+      toast.error(lang.errors.invalidUserData || 'Ошибка чтения данных пользователя');
     }
 
     if (!userID || !token) {
-      console.error('❌ Missing userID or token');
+      toast.error(lang.errors?.missingToken || 'Нет токена или ID пользователя');
       return;
     }
 
-    navigate(`/table/${roomId}`);
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          Authorization: token,
+        },
+      });
+
+      if (!res.ok) {
+        toast.error(lang.errors?.failedToFetchUser || 'Не удалось получить данные пользователя');
+        return;
+      }
+
+      const data = await res.json();
+      const balance = parseInt(data?.balance || '0');
+
+      if (isNaN(balance) || balance < 500) {
+        toast.warning(lang.lobby?.notEnoughBalance || 'Недостаточно монет для входа (нужно минимум 500)');
+        return;
+      }
+
+      navigate(`/table/${roomId}`);
+    } catch (err) {
+      toast.error(lang.errors?.failedToFetch || 'Ошибка при получении баланса');
+      console.error('❌ Failed to fetch balance:', err);
+    }
   };
 
   return (
@@ -96,7 +125,7 @@ export default function LobbyContent() {
               <p className="text-lg font-semibold text-pink-400">{room.Name}</p>
               <p className="text-gray-300 text-sm">{lang.lobby.ID} {room.RoomID}</p>
               <p className="text-gray-400 text-sm">{lang.lobby.Status} {room.Status}</p>
-              <p className="text-gray-400 text-sm">{lang.lobby.maxPlayers} {room.MaxPlayers }</p>
+              <p className="text-gray-400 text-sm">{lang.lobby.maxPlayers} {room.MaxPlayers}</p>
               <button
                 onClick={() => handleConnectRoom(room.RoomID)}
                 className="mt-2 bg-pink-600 hover:bg-pink-700 text-white py-1 px-4 rounded-lg text-sm font-medium transition"

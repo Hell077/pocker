@@ -30,7 +30,8 @@ export const en = {
     maxPlayers: 'Max players:',
     ID: 'ID:',
     Status:'Status:',
-    Connect:'Connect'
+    notEnoughBalance: 'Not enough chips. You need at least 500 to join a room.',
+    Connect:'Connect',
   },
   connectRoomModal: {
     title: 'Join Room',
@@ -75,6 +76,12 @@ export const en = {
     toastInvalidForm: 'Please check the form for errors',
     toastCreateError: 'Failed to create room. Please try again later.',
     toastCreated: 'Room created successfully!',
+  },
+  errors: {
+    invalidUserData: 'Failed to read user data.',
+    missingToken: 'Missing token or user ID.',
+    failedToFetchUser: 'Failed to fetch user data.',
+    failedToFetch: 'Failed to fetch balance.',
   },
   profile: {
     logout: 'Logout',
