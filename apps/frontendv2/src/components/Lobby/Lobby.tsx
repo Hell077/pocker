@@ -26,17 +26,25 @@ export default function LobbyContent() {
   const toast = useToast(); // ✅ здесь правильно
 
   useEffect(() => {
-    fetch(`${API_URL}/room/list`, {
-      headers: {
-        Authorization: localStorage.getItem('accessToken') || '',
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setRooms(data.rooms || []))
-      .catch((err) => {
-        toast.error('❌ Failed to fetch rooms');
-        console.error(err);
-      });
+    const fetchRooms = () => {
+      fetch(`${API_URL}/room/list`, {
+        headers: {
+          Authorization: localStorage.getItem('accessToken') || '',
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => setRooms(data.rooms || []))
+        .catch((err) => {
+          toast.error('❌ Failed to fetch rooms');
+          console.error(err);
+        });
+    };
+
+    fetchRooms();
+
+    const interval = setInterval(fetchRooms, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreateRoom = (roomId: string) => {
