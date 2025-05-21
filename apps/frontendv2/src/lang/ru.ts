@@ -44,6 +44,7 @@ export const ru = {
     roomIdPlaceholder: 'Введите ID комнаты',
     connectButton: 'Подключиться',
     toastEmptyRoomId: 'Введите ID комнаты',
+    EloTitle:'Эло за победу 10'
   },
   createRoomModal: {
     title: 'Создать комнату',
@@ -59,6 +60,7 @@ export const ru = {
     toastInvalidForm: 'Проверьте корректность введённых данных',
     toastCreateError: 'Не удалось создать комнату. Попробуйте позже.',
     toastCreated: 'Комната успешно создана!',
+    EloTitle:'Эло за победу 10'
   },
   footer: {
     aboutTitle: 'О ПЛАТФОРМЕ',
@@ -81,6 +83,8 @@ export const ru = {
     positionHeader: 'Позиция',
     nicknameHeader: 'Никнейм',
     eloHeader: 'ELO',
+    placeLabel:'Место',
+    winRateLabel: 'Винрейт',
     load_error: (err: unknown) => `Ошибка загрузки лидерборда: ${err}`,
   },
   profile: {

@@ -7,6 +7,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	_ "poker/docs"
 	"poker/internal/modules/auth"
 	daily_reward "poker/internal/modules/daily_rewards"
 	"poker/internal/modules/room"

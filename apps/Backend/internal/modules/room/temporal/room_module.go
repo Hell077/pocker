@@ -37,12 +37,11 @@ func (m *RoomModule) TaskQueue() string {
 func (m *RoomModule) Register(w worker.Worker) {
 	w.RegisterWorkflow(StartRoomWorkflow)
 
-	// Регистрируем обёртки-функции (а не методы структуры)
 	w.RegisterActivity(GetPlayerBalanceActivity)
 	w.RegisterActivity(DeductChipsFromBalanceActivity)
 	w.RegisterActivity(CreditWinningsActivity)
+	w.RegisterActivity(UpdateUserElo)
 
-	// Остальные
 	w.RegisterActivity(SendMessageActivity)
 	w.RegisterActivity(SaveGameHistoryActivity)
 	w.RegisterActivity(SendCardToUserActivity)

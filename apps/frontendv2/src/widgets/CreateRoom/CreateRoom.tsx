@@ -65,7 +65,7 @@ export default function CreateRoomModal({ isOpen, onClose, onCreate }: Props) {
                 data = {}
             }
 
-            console.log('✅ Parsed JSON:', data)
+            console.log('Parsed JSON:', data)
 
             if (!res.ok || !data || !data.room_id) {
                 throw new Error('Ошибка при создании комнаты')

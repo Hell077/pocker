@@ -44,6 +44,9 @@ export default function ConnectRoomModal({ isOpen, onClose, onConnect }: Props) 
         <h2 className="text-2xl font-bold mb-6 text-pink-400 text-center">
           {lang.connectRoomModal.title}
         </h2>
+        <h2 className="text-2xl font-bold mb-6 text-pink-400 text-center">
+          {lang.connectRoomModal.EloTitle}
+        </h2>
 
         <div className="mb-6">
           <input

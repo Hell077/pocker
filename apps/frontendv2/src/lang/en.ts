@@ -37,6 +37,7 @@ export const en = {
     title: 'Join Room',
     roomIdPlaceholder: 'Enter Room ID',
     connectButton: 'Join',
+    EloTitle:'Elo for the win 10',
     toastEmptyRoomId: 'Please enter a Room ID',
   },
   footer: {
@@ -60,8 +61,11 @@ export const en = {
     positionHeader: 'Position',
     nicknameHeader: 'Nickname',
     eloHeader: 'ELO',
+    placeLabel:'Place',
+    winRateLabel: 'Win rate',
     load_error: (err: unknown) => `Failed to load leaderboard: ${err}`,
   },
+
   createRoomModal: {
     title: 'Create Room',
     roomNamePlaceholder: 'Room Name',
@@ -76,6 +80,7 @@ export const en = {
     toastInvalidForm: 'Please check the form for errors',
     toastCreateError: 'Failed to create room. Please try again later.',
     toastCreated: 'Room created successfully!',
+    EloTitle:'Elo for the win 10'
   },
   errors: {
     invalidUserData: 'Failed to read user data.',

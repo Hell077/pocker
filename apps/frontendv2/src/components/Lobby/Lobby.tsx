@@ -134,6 +134,7 @@ export default function LobbyContent() {
               <p className="text-gray-300 text-sm">{lang.lobby.ID} {room.RoomID}</p>
               <p className="text-gray-400 text-sm">{lang.lobby.Status} {room.Status}</p>
               <p className="text-gray-400 text-sm">{lang.lobby.maxPlayers} {room.MaxPlayers}</p>
+              <p className="4 shadow-lg flex flex-col gap-2 text-yellow-500">{lang.connectRoomModal.EloTitle}</p>
               <button
                 onClick={() => handleConnectRoom(room.RoomID)}
                 className="mt-2 bg-pink-600 hover:bg-pink-700 text-white py-1 px-4 rounded-lg text-sm font-medium transition"

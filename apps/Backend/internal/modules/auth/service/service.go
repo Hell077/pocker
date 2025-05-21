@@ -18,6 +18,7 @@ type AuthService interface {
 	RefreshToken(refresh string) (string, error)
 	Me(userID string) (database.Account, error)
 	UpdateBalance(userID string, newBalance int64) error
+	UpdateUserElo(userID string, newElo int64, won bool) error
 }
 
 type authService struct {
@@ -119,4 +120,8 @@ func (s *authService) Me(userID string) (database.Account, error) {
 
 func (s *authService) UpdateBalance(userID string, newBalance int64) error {
 	return s.repo.UpdateBalance(userID, newBalance)
+}
+
+func (s *authService) UpdateUserElo(userID string, newElo int64, won bool) error {
+	return s.repo.UpdateElo(userID, newElo, won)
 }

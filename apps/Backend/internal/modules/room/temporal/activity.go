@@ -143,6 +143,10 @@ func (a *RoomActivities) CreditWinningsActivity(ctx context.Context, input Balan
 	return a.updateUserBalance(input.UserID, input.Amount)
 }
 
+func UpdateUserElo(ctx context.Context, userID string, newElo int64, won bool) error {
+	return defaultRoomActivities.AuthService.UpdateUserElo(userID, newElo, won)
+}
+
 func (a *RoomActivities) updateUserBalance(userID string, delta int64) error {
 	acc, err := a.AuthService.Me(userID)
 	if err != nil {

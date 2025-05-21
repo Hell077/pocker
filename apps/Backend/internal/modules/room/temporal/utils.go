@@ -433,6 +433,7 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
+	// Победа по фолду всех
 	if notFolded == 1 {
 		for _, id := range state.PlayerOrder {
 			if !state.PlayerFolded[id] {
@@ -449,11 +450,17 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 
 				_ = workflow.ExecuteActivity(actCtx, SendWinnerPayloadActivity, state.RoomID, id, state.Players, *state).Get(actCtx, nil)
 
-				// 💰 Зачислить победителю pot
 				_ = workflow.ExecuteActivity(actCtx, CreditWinningsActivity, BalanceUpdateInput{
 					UserID: id,
 					Amount: state.Pot,
 				}).Get(actCtx, nil)
+
+				_ = workflow.ExecuteActivity(actCtx, UpdateUserElo, id, int64(10), true) // победителю +10
+				for otherID := range state.Players {
+					if otherID != id && !state.PlayerFolded[otherID] {
+						_ = workflow.ExecuteActivity(actCtx, UpdateUserElo, otherID, int64(-10), false) // проигравшим -10
+					}
+				}
 
 				terminateGame(ctx, state, workflow.GetLogger(ctx))
 				state.Terminated = true
@@ -491,6 +498,14 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 				Amount: state.Pot,
 			}).Get(actCtx, nil)
 
+			// 🔄 Обновление ELO
+			_ = workflow.ExecuteActivity(actCtx, UpdateUserElo, winner, int64(10), true)
+			for _, id := range state.PlayerOrder {
+				if id != winner && !state.PlayerFolded[id] {
+					_ = workflow.ExecuteActivity(actCtx, UpdateUserElo, id, int64(-10), false)
+				}
+			}
+
 			state.RoundStage = "ended"
 			state.CurrentPlayer = ""
 			state.GameStarted = false
@@ -506,6 +521,7 @@ func NextTurn(ctx workflow.Context, state *RoomState) {
 		}
 	}
 
+	// Передача хода
 	for i := 1; i <= n; i++ {
 		nextIdx := (currentIdx + i) % n
 		next := state.PlayerOrder[nextIdx]
