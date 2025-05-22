@@ -302,6 +302,8 @@ func handleStartGame(ctx workflow.Context, state *RoomState, roomID string, logg
 	}
 
 	state.GameStarted = true
+	rr := repo.NewRoomRepo(database.DB)
+	_ = rr.UpdateRoomStatus(state.RoomID, "Started")
 	state.PlayerOrder = make([]string, 0)
 	state.PlayerChips = make(map[string]int64)
 	state.PlayerFolded = make(map[string]bool)
